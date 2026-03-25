@@ -1,7 +1,10 @@
 import type {
+  AdvanceRoundInput,
+  AdvanceRoundResult,
   CreateGameSessionInput,
   CreateGameSessionResult,
   DealerProof,
+  FinalizeRoundInput,
   RerollDiceInput,
   RerollDiceResult,
   RollDiceInput,
@@ -18,7 +21,15 @@ async function postJson<TResponse>(path: string, body: unknown) {
   });
 
   if (!response.ok) {
-    throw new Error(`${path} returned ${response.status}`);
+    const errorPayload = (await response.json().catch(() => null)) as
+      | {
+          error?: {
+            message?: string;
+          };
+        }
+      | null;
+
+    throw new Error(errorPayload?.error?.message ?? `${path} returned ${response.status}`);
   }
 
   return (await response.json()) as TResponse;
@@ -36,10 +47,10 @@ export function rerollDice(input: RerollDiceInput) {
   return postJson<RerollDiceResult>("/api/game/reroll", input);
 }
 
-export function finalizeRound(input: {
-  gameId: string;
-  player: `0x${string}`;
-  rewardRecipient: `0x${string}`;
-}) {
+export function finalizeRound(input: FinalizeRoundInput) {
   return postJson<DealerProof>("/api/game/finalize", input);
+}
+
+export function advanceRound(input: AdvanceRoundInput) {
+  return postJson<AdvanceRoundResult>("/api/game/advance", input);
 }

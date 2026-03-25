@@ -1,7 +1,9 @@
+import { randomInt } from "node:crypto";
+
 import type { DiceArray, DiceValue } from "@/types/game";
 
 function randomDiceValue(): DiceValue {
-  return (Math.floor(Math.random() * 6) + 1) as DiceValue;
+  return randomInt(1, 7) as DiceValue;
 }
 
 export function generateDice(): DiceArray {

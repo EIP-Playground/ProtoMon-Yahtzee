@@ -1,14 +1,13 @@
-export function getRedisUrl() {
-  const redisUrl = process.env.REDIS_URL?.trim();
-  return redisUrl && redisUrl.length > 0 ? redisUrl : null;
-}
+import { Redis } from "@upstash/redis";
 
-export function assertRedisConfigured() {
-  const redisUrl = getRedisUrl();
+export type RedisClient = Pick<Redis, "get" | "set">;
 
-  if (!redisUrl) {
-    throw new Error("REDIS_URL is not configured.");
+let redis: RedisClient | null = null;
+
+export function getRedis(): RedisClient {
+  if (!redis) {
+    redis = Redis.fromEnv();
   }
 
-  return redisUrl;
+  return redis;
 }

@@ -10,7 +10,7 @@ export function SessionGate({ gameId, children }: SessionGateProps) {
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Session Gate</p>
           <p className="mt-1 text-sm text-slate-300">
-            这里会接主钱包授权、session key 和战斗会话初始化。
+            Demo mode. Wallet 与 session key 暂时旁路，当前只接后端权威骰面与本地结算。
           </p>
         </div>
         <div className="rounded-full border border-cyan-200/15 bg-cyan-300/10 px-4 py-2 text-xs uppercase tracking-[0.18em] text-cyan-100">

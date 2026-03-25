@@ -1,4 +1,7 @@
-import type { DiceArray, HexAddress } from "@/types/game";
+import { randomBytes } from "node:crypto";
+
+import { getRedis } from "@/lib/server/redis";
+import type { HexAddress, HexString, StoredDiceArray } from "@/types/game";
 
 export type BackendGameSession = {
   gameId: string;
@@ -7,11 +10,26 @@ export type BackendGameSession = {
   bossId: number;
   turn: number;
   rollCount: number;
-  currentDice: DiceArray | null;
+  currentDice: StoredDiceArray;
   finalized: boolean;
   createdAt: number;
   expiresAt: number;
 };
+
+const SESSION_TTL_SECONDS = 2 * 60 * 60;
+const EMPTY_DICE: StoredDiceArray = [0, 0, 0, 0, 0];
+
+export function getGameSessionKey(gameId: string) {
+  return `game:${gameId}`;
+}
+
+export function createGameId() {
+  return `0x${randomBytes(32).toString("hex")}` as HexString;
+}
+
+function getSessionTtlSeconds(expiresAt: number, now = Date.now()) {
+  return Math.max(1, Math.ceil((expiresAt - now) / 1000));
+}
 
 export function createBackendGameSession(input: {
   gameId: string;
@@ -29,9 +47,37 @@ export function createBackendGameSession(input: {
     bossId: input.bossId,
     turn: 1,
     rollCount: 0,
-    currentDice: null,
+    currentDice: EMPTY_DICE,
     finalized: false,
     createdAt: now,
-    expiresAt: now + 2 * 60 * 60 * 1000,
+    expiresAt: now + SESSION_TTL_SECONDS * 1000,
   } satisfies BackendGameSession;
+}
+
+export async function getBackendGameSession(gameId: string) {
+  return getRedis().get<BackendGameSession>(getGameSessionKey(gameId));
+}
+
+export async function saveBackendGameSession(session: BackendGameSession, now = Date.now()) {
+  const ttlSeconds = getSessionTtlSeconds(session.expiresAt, now);
+  await getRedis().set(getGameSessionKey(session.gameId), session, {
+    ex: ttlSeconds,
+  });
+  return session;
+}
+
+export async function updateBackendGameSession(
+  gameId: string,
+  updater: (session: BackendGameSession) => BackendGameSession,
+  now = Date.now(),
+) {
+  const session = await getBackendGameSession(gameId);
+
+  if (!session) {
+    return null;
+  }
+
+  const updatedSession = updater(session);
+  await saveBackendGameSession(updatedSession, now);
+  return updatedSession;
 }

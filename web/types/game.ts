@@ -1,10 +1,24 @@
-export type HexAddress = `0x${string}`;
+export type HexString = `0x${string}`;
+
+export type HexAddress = HexString;
 
 export type DiceValue = 1 | 2 | 3 | 4 | 5 | 6;
 
 export type DiceArray = [DiceValue, DiceValue, DiceValue, DiceValue, DiceValue];
 
+export type StoredDiceValue = 0 | DiceValue;
+
+export type StoredDiceArray = [
+  StoredDiceValue,
+  StoredDiceValue,
+  StoredDiceValue,
+  StoredDiceValue,
+  StoredDiceValue,
+];
+
 export type LockedDice = [boolean, boolean, boolean, boolean, boolean];
+
+export type BattleActionState = "idle" | "waiting";
 
 export type SyncStatus =
   | "LOCAL_APPLIED"
@@ -25,6 +39,15 @@ export const BOSS_1: BossConfig = {
   targetHp: 150,
 };
 
+export type BattleSlotResult = {
+  score: number;
+  damage: number;
+  bonusDamage: number;
+  dice: DiceArray;
+};
+
+export type BattleSlotResults = Record<number, BattleSlotResult | null>;
+
 export type DealerProof = {
   gameId: string;
   player: HexAddress;
@@ -35,7 +58,7 @@ export type DealerProof = {
   expiry: number;
   chainId: number;
   verifyingContract: HexAddress;
-  backendSig: HexAddress;
+  backendSig: HexString;
 };
 
 export type BattleState = {
@@ -49,23 +72,31 @@ export type BattleState = {
   dice: DiceArray | null;
   locked: LockedDice;
   usedSlots: Record<number, boolean>;
+  slotResults: BattleSlotResults;
   upperSubtotalLocal: number;
   upperBonusClaimedLocal: boolean;
   syncStatus: SyncStatus;
-  pendingTxHash?: HexAddress;
+  finished: boolean;
+  won: boolean;
+  diceActionState: BattleActionState;
+  castActionState: BattleActionState;
+  pendingTxHash?: HexString;
 };
 
 export type CreateGameSessionInput = {
-  smartAccount: HexAddress;
+  player: HexAddress;
   rewardRecipient: HexAddress;
   bossId: number;
 };
 
 export type CreateGameSessionResult = {
   gameId: string;
+  player: HexAddress;
+  rewardRecipient: HexAddress;
   bossId: number;
   bossHp: number;
   turn: number;
+  rollCount: number;
 };
 
 export type RollDiceInput = {
@@ -97,6 +128,18 @@ export type FinalizeRoundInput = {
   gameId: string;
   player: HexAddress;
   rewardRecipient: HexAddress;
+};
+
+export type AdvanceRoundInput = {
+  gameId: string;
+  player: HexAddress;
+  nextTurn: number;
+};
+
+export type AdvanceRoundResult = {
+  gameId: string;
+  turn: number;
+  rollCount: number;
 };
 
 export type TurnPlayedEvent = {
