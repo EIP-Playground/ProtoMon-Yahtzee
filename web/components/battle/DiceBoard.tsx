@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { useLocale } from "@/components/providers/LocaleProvider";
 import { createAnimatedDiceFrame, DICE_ELEMENT_MAP } from "@/lib/game/dice";
 import type { DiceArray, LockedDice } from "@/types/game";
 
@@ -28,6 +29,7 @@ export function DiceBoard({
   onDiceAction,
   onToggleLock,
 }: DiceBoardProps) {
+  const { messages } = useLocale();
   const [animatedValues, setAnimatedValues] = useState<DiceArray>(() =>
     createAnimatedDiceFrame(dice, locked),
   );
@@ -53,11 +55,15 @@ export function DiceBoard({
     <section className="rounded-[28px] border border-white/10 bg-white/6 p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-cyan-200/80">Dice</p>
-          <h2 className="mt-3 text-2xl font-semibold text-white">Roll Board</h2>
+          <p className="text-xs uppercase tracking-[0.28em] text-cyan-200/80">
+            {messages.battle.dice.eyebrow}
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold text-white">
+            {messages.battle.dice.title}
+          </h2>
         </div>
         <div className="rounded-full border border-white/10 bg-slate-950/45 px-4 py-2 text-sm text-slate-300">
-          rollCount: {rollCount} / 3
+          {messages.battle.dice.rollCountLabel}: {rollCount} / 3
         </div>
       </div>
 
@@ -72,16 +78,16 @@ export function DiceBoard({
         </button>
         <div className="rounded-full border border-white/10 bg-slate-950/45 px-4 py-3 text-xs uppercase tracking-[0.18em] text-slate-400">
           {finished
-            ? "Battle finished"
+            ? messages.battle.dice.battleFinished
             : isCasting
-              ? "正在同步本地施法结果"
+              ? messages.battle.dice.syncingCast
               : isRollingVisual
-                ? "云端骰面生成中..."
+                ? messages.battle.dice.rolling
                 : !dice
-                  ? "点击 ROLL 开始当前回合"
+                  ? messages.battle.dice.clickToStart
                   : rollCount < 3
-                    ? "锁定想保留的骰子，再按 ROLL"
-                    : "本回合次数已满，去积分板施法"}
+                    ? messages.battle.dice.lockThenRoll
+                    : messages.battle.dice.noRerolls}
         </div>
       </div>
 
@@ -105,7 +111,7 @@ export function DiceBoard({
               }
             >
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                Die {index + 1}
+                {messages.battle.dice.die(index)}
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 text-4xl font-semibold text-white">
                 {isUnknown ? (
@@ -118,10 +124,10 @@ export function DiceBoard({
                 )}
               </div>
               <p className="mt-2 text-xs text-slate-400">
-                {isUnknown ? "Unknown face" : element?.label}
+                {isUnknown ? messages.battle.dice.unknownFace : messages.battle.elementLabels[value]}
               </p>
               <p className="mt-4 text-xs uppercase tracking-[0.18em] text-slate-400">
-                {locked[index] ? "Locked" : "Unlocked"}
+                {locked[index] ? messages.battle.dice.locked : messages.battle.dice.unlocked}
               </p>
             </button>
           );
