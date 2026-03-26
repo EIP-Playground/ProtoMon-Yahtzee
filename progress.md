@@ -32,6 +32,176 @@ Original prompt: PLEASE IMPLEMENT THIS PLAN:
 
 ## Notes
 
+## 2026-03-27 NES.css Font Integration Pass
+
+- Reviewed the upstream `nostalgic-css/NES.css` README and aligned the app with its font guidance:
+  - the library does not ship fonts
+  - recommended usage is to apply your chosen font to base elements such as `html`, `body`, `pre`, `code`, `kbd`, and `samp`
+- Updated `web/app/globals.css` so the app's base elements now inherit locale-aware pixel fonts instead of falling back to `Avenir Next`.
+- Kept title font priority as `Press Start 2P -> Zpix`, while body/UI text now also uses the locale-aware pixel font stack.
+- Increased homepage and loading typography so the hero title, section titles, CTA text, footer text, wallet/language controls, and loading copy are materially more readable.
+- Restored the missing ProtoMon card labels in the meet section while adjusting the surrounding typography scale.
+
+## Validation
+
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+
+## 2026-03-27 Homepage Mock Pass 3
+
+- Removed the Hero fourth-line slogan from homepage rendering in both locales; Hero now renders only:
+  - `ProtoMon`
+  - `ELEMENTAL ALCHEMY`
+  - the localized `Reactive Network` headline
+- Strengthened the `Reactive Network` emphasis with a brighter cyan/blue color, heavier outline, and stronger breathing glow.
+- Extended `HomeArtConfig` with mobile position support:
+  - `mobileLeft`
+  - `mobileTop`
+  - `glowVariant`
+- Repositioned homepage mobile art to better match the current desktop composition while keeping the mobile breakpoint at `768px`.
+- Reworked the meet section cards:
+  - removed the on-page card-name captions
+  - restored a stable three-card single-row layout on desktop
+  - kept mobile at a single-row three-card scaled layout
+  - added stronger element-colored glow variants:
+    - fire = red
+    - water = blue
+    - wood = green
+- Added portal-specific glow treatment in the cross-chain section:
+  - active portal now has a stronger breathing aura
+  - inactive portal keeps a weaker background glow
+- Rebuilt footer buttons to use NES.css icons:
+  - GitHub -> `nes-icon github`
+  - Twitter/X -> `nes-icon twitter`
+  - Team -> `nes-icon star`
+- Shifted footer buttons to a neutral stone/brick gray palette and compressed the footer stage height further.
+- Removed extra homepage bottom padding so the page ends closer to the visible footer.
+
+## Validation
+
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+
+## 2026-03-27 Homepage Glow Removal + Footer Copy Pass
+
+- Removed the visual glow treatment from the meet cards and cross-chain portal art.
+- Simplified the meet-card art classes back to positional float-only rendering so the card row is not visually distorted by glow layers.
+- Removed the homepage art glow-layer injection from `HomeArt`.
+- Changed the `Reactive Network` emphasis to a stronger purple breathing treatment.
+- Enlarged footer NES.css icons from `is-small` to `is-medium` and increased the footer stone-button size.
+- Added the footer copyright line:
+  - `2026 EIP-Playground ProtoMon`
+- Removed the homepage shell’s extra bottom padding so the page no longer intentionally extends past the footer.
+
+## Validation
+
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+
+## 2026-03-27 Homepage Card Glow Isolation + Reactive Purple Pass
+
+- Investigated the lingering meet-card row issue and moved homepage art glow off the positioned art container into a dedicated inner glow layer (`home-art-glow-layer`).
+- This isolates glow rendering from the art wrapper’s position/size rules so card aura effects no longer share the same visual box as layout positioning.
+- Tightened meet-card widths and offsets again for both desktop and mobile while keeping the mobile layout as a single scaled row under the `768px` breakpoint.
+- Changed the Hero `Reactive Network` emphasis from cyan to purple and restored a stronger breathing glow treatment.
+- Kept portal glow on the same isolated-layer pattern so the active portal aura remains visually strong without coupling to the art wrapper.
+
+## Validation
+
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+
+## Notes
+
+- The `develop-web-game` Playwright loop is still blocked here because `playwright` is not installed in the local runtime (`require.resolve("playwright")` fails).
+
+## 2026-03-27 Homepage Frosted Nav + Font Order Pass
+
+- Reworked the homepage top controls into a fixed frosted-glass nav that stays pinned to the top of the viewport.
+- Removed the `Dealer Online` pill from the homepage nav so the top bar now only contains:
+  - language switcher
+  - wallet controls
+- Added a mobile-specific square wallet button so the small-screen nav keeps a compact footprint while still opening the RainbowKit flows.
+- Updated pixel button styling so borders, inner highlights, and pressed states all use sharper pixel-art treatment for both utility buttons and the main CTA.
+- Changed locale-driven font priority:
+  - `en` now prefers `Press Start 2P`
+  - `zh-CN` now forces `Zpix` first for headings and body/UI text
+
+## Validation
+
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+
+## 2026-03-27 Homepage Existing Icon Swap + Footer Anchor Pass
+
+- Added `lucide-react` to `web/` and replaced the remaining hand-drawn homepage control icons:
+  - wallet button now uses `lucide-react` `Wallet`
+  - network button now uses `lucide-react` `Globe2`
+  - language switcher now uses `lucide-react` `Languages`
+  - back-to-top button now uses `lucide-react` `ChevronUp`
+- Kept the footer action buttons on NES.css icons, but enlarged the icon scale and stone-button size so the GitHub / Twitter / Team buttons read correctly.
+- Moved the footer content block away from vertical centering and anchored it from the top of the footer stage so the tagline and copyright now stack downward from the footer start area.
+- Added a dedicated `chest-float` animation class and applied it to the mainnet reward chest art so the chest now bobs independently in the cross-chain section.
+
+## Validation
+
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+
+## Notes
+
+- The `develop-web-game` Playwright loop is still blocked because the local runtime still does not provide the `playwright` package (`require.resolve("playwright")` fails in `web/`).
+
+## 2026-03-27 Footer Lucide + CTA Icon + Chest Float Verification
+
+- Replaced homepage footer icons from NES.css glyphs to `lucide-react` icons:
+  - left button 1: `Code2`
+  - left button 2: `MessageCircle`
+  - right button: `Users`
+- Kept footer button labels unchanged while switching icon renderer implementation in `HomeLanding.tsx`.
+- Replaced the Hero CTA leading triangle CSS shape with a real `lucide-react` `Play` icon and retained pixel-shadow styling through `.cta-play-icon`.
+- Increased chest bob visibility by tuning chest float motion:
+  - `@keyframes chest-bob` peak from `-8px` to `-14px`
+  - `chest-float` duration tightened to `3.2s` and `will-change: transform` added
+- Verified the chest art config still mounts `className: "chest-float"` on `mainnet-chest.png`.
+
+## Validation
+
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+
+## 2026-03-27 Homepage Nav + Hero Mock Pass 2
+
+- Reworked the homepage top bar into a full-width fixed frosted-glass nav.
+- Removed the homepage dealer-status widget from the top bar; the nav now only contains:
+  - icon-based language dropdown (`中文` / `EN`)
+  - RainbowKit wallet controls
+- Rebuilt the wallet UI shell:
+  - desktop: separate network and wallet buttons with inline SVG icons and text
+  - mobile: single square wallet icon button
+- Changed homepage hero copy structure to three lines:
+  - `ProtoMon`
+  - `ELEMENTAL ALCHEMY`
+  - localized slogan line
+- Strengthened pixel-art presentation:
+  - more stepped button borders and pressed states
+  - stronger title outlines and glow
+  - CTA play-triangle glyph
+  - ProtoMon card glow + float animation
+- Enlarged the cross-chain labels and caption.
+- Compressed the footer to a single row of square icon buttons using generic inline SVG icons.
+- Updated locale labels so English now renders as `EN`.
+
+## Validation
+
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+
 - The current phase intentionally keeps `CAST` local-only. `finalize` and chain settlement are still not wired into the battle UI.
 - `BattleState` still uses the field name `smartAccount` internally even though backend contracts use `player`. This is cosmetic right now, but could be normalized later.
 - The `develop-web-game` Playwright client could not run in this environment because the external `playwright` package was unavailable to the skill script.
