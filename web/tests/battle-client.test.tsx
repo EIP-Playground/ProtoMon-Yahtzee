@@ -142,7 +142,7 @@ describe("BattleClient", () => {
 
     render(<BattleClient gameId="0xtestgame" />);
 
-    const castButton = await screen.findByRole("button", { name: /Chance/i });
+    const castButton = await screen.findByRole("button", { name: /Chance|机会/i });
     await user.click(castButton);
 
     expect(screen.getByRole("button", { name: "正在施法" })).toBeDisabled();
@@ -220,9 +220,9 @@ describe("BattleClient", () => {
     expect(await screen.findByText("当前累计: 63 / 63")).toBeInTheDocument();
     expect(screen.getByText("已触发")).toBeInTheDocument();
     expect(screen.getByText("47 dmg")).toBeInTheDocument();
-    expect(screen.getByText("Dice: 6 / 6 / 1 / 2 / 3")).toBeInTheDocument();
-    expect(screen.getAllByText("Local HP").length).toBeGreaterThan(0);
+    expect(screen.getByText("骰面: 6 / 6 / 1 / 2 / 3")).toBeInTheDocument();
+    expect(screen.getAllByText("本地 HP").length).toBeGreaterThan(0);
     expect(screen.getAllByText("88").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Locked")).toHaveLength(2);
+    expect(screen.getAllByText("已锁定")).toHaveLength(2);
   });
 });

@@ -1,3 +1,6 @@
+"use client";
+
+import { useLocale } from "@/components/providers/LocaleProvider";
 import {
   UPPER_BONUS_DAMAGE,
   UPPER_BONUS_TARGET,
@@ -13,6 +16,7 @@ type ScoreBoardProps = {
 };
 
 export function ScoreBoard({ state, isCasting, onCastSlot }: ScoreBoardProps) {
+  const { messages } = useLocale();
   const upperBonusPreviewReady =
     state.dice !== null &&
     SLOT_DEFINITIONS.filter((slot) => slot.group === "upper" && !state.usedSlots[slot.id]).some(
@@ -21,23 +25,27 @@ export function ScoreBoard({ state, isCasting, onCastSlot }: ScoreBoardProps) {
 
   return (
     <section className="rounded-[28px] border border-white/10 bg-white/6 p-6">
-      <p className="text-xs uppercase tracking-[0.28em] text-cyan-200/80">Slots</p>
-      <h2 className="mt-3 text-2xl font-semibold text-white">Score Board</h2>
+      <p className="text-xs uppercase tracking-[0.28em] text-cyan-200/80">
+        {messages.battle.score.eyebrow}
+      </p>
+      <h2 className="mt-3 text-2xl font-semibold text-white">{messages.battle.score.title}</h2>
 
       <div className="mt-6 space-y-6">
         {(["upper", "lower"] as const).map((group) => (
           <div key={group}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                {group === "upper" ? "Upper Section" : "Lower Section"}
+                {group === "upper"
+                  ? messages.battle.score.upperSection
+                  : messages.battle.score.lowerSection}
               </p>
               {group === "upper" ? (
                 <div className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-100">
                   {state.upperBonusClaimedLocal
-                    ? "Bonus Triggered"
+                    ? messages.battle.score.bonusTriggered
                     : upperBonusPreviewReady
-                      ? "Bonus Ready"
-                      : "Bonus Pending"}
+                      ? messages.battle.score.bonusReady
+                      : messages.battle.score.bonusPending}
                 </div>
               ) : null}
             </div>
@@ -46,23 +54,37 @@ export function ScoreBoard({ state, isCasting, onCastSlot }: ScoreBoardProps) {
               <div className="mb-4 rounded-2xl border border-white/10 bg-slate-950/45 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-white">Upper Bonus</p>
+                    <p className="text-sm font-medium text-white">
+                      {messages.battle.score.upperBonusTitle}
+                    </p>
                     <p className="mt-1 text-sm text-slate-400">
-                      上半区累计达到 {UPPER_BONUS_TARGET} 分后，额外获得 {UPPER_BONUS_DAMAGE} dmg。
+                      {messages.battle.score.upperBonusDescription(
+                        UPPER_BONUS_TARGET,
+                        UPPER_BONUS_DAMAGE,
+                      )}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Status</p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                      {messages.battle.score.status}
+                    </p>
                     <p className="mt-1 text-sm font-medium text-white">
-                      {state.upperBonusClaimedLocal ? "已触发" : "未达成"}
+                      {state.upperBonusClaimedLocal
+                        ? messages.battle.score.achieved
+                        : messages.battle.score.notAchieved}
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-4 text-sm">
                   <p className="text-slate-300">
-                    当前累计: {state.upperSubtotalLocal} / {UPPER_BONUS_TARGET}
+                    {messages.battle.score.currentSubtotal(
+                      state.upperSubtotalLocal,
+                      UPPER_BONUS_TARGET,
+                    )}
                   </p>
-                  <p className="text-amber-100">奖励: +{UPPER_BONUS_DAMAGE} dmg</p>
+                  <p className="text-amber-100">
+                    {messages.battle.score.reward(UPPER_BONUS_DAMAGE)}
+                  </p>
                 </div>
               </div>
             ) : null}
@@ -88,17 +110,19 @@ export function ScoreBoard({ state, isCasting, onCastSlot }: ScoreBoardProps) {
                     }
                   >
                     <div>
-                      <p className="text-sm font-medium text-slate-100">{slot.title}</p>
+                      <p className="text-sm font-medium text-slate-100">
+                        {messages.battle.score.slotTitles[slot.key]}
+                      </p>
                       <p className="mt-1 text-xs text-slate-500">
                         {isUsed
-                          ? `Committed: ${committed?.score ?? 0} score`
+                          ? messages.battle.score.committed(committed?.score ?? 0)
                           : preview
-                            ? `Preview: ${preview.slotScore} score`
-                            : "Roll first to preview this slot"}
+                            ? messages.battle.score.preview(preview.slotScore)
+                            : messages.battle.score.rollFirst}
                       </p>
                       {isUsed && committed ? (
                         <p className="mt-1 text-xs text-slate-400">
-                          Dice: {committed.dice.join(" / ")}
+                          {messages.battle.score.diceRecord(committed.dice)}
                         </p>
                       ) : null}
                     </div>
@@ -110,22 +134,28 @@ export function ScoreBoard({ state, isCasting, onCastSlot }: ScoreBoardProps) {
                             : "text-xs uppercase tracking-[0.18em] text-cyan-100"
                         }
                       >
-                        {isUsed ? "Used" : canCast ? "CAST" : "Open"}
+                        {isUsed
+                          ? messages.battle.score.used
+                          : canCast
+                            ? messages.battle.score.cast
+                            : messages.battle.score.open}
                       </p>
                       <p className="mt-1 text-sm text-slate-300">
                         {isUsed
-                          ? `${committed?.damage ?? 0} dmg`
+                          ? messages.battle.score.damage(committed?.damage ?? 0)
                           : preview
-                            ? `${preview.totalDamage} dmg`
+                            ? messages.battle.score.damage(preview.totalDamage)
                             : "--"}
                       </p>
                       {isUsed && committed?.bonusDamage ? (
                         <p className="mt-1 text-xs text-amber-200">
-                          +{committed.bonusDamage} upper bonus
+                          {messages.battle.score.upperBonusTag(committed.bonusDamage)}
                         </p>
                       ) : null}
                       {!isUsed && preview && preview.bonusDamage > 0 ? (
-                        <p className="mt-1 text-xs text-amber-200">+35 upper bonus</p>
+                        <p className="mt-1 text-xs text-amber-200">
+                          {messages.battle.score.upperBonusTag(preview.bonusDamage)}
+                        </p>
                       ) : null}
                     </div>
                   </button>

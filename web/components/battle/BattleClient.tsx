@@ -10,6 +10,8 @@ import { DiceBoard } from "@/components/battle/DiceBoard";
 import { ScoreBoard } from "@/components/battle/ScoreBoard";
 import { SessionGate } from "@/components/battle/SessionGate";
 import { SyncStatusPanel } from "@/components/battle/SyncStatus";
+import { useLocale } from "@/components/providers/LocaleProvider";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { lockedToHoldMask } from "@/lib/game/dice";
 import { DEMO_PLAYER, DEMO_REWARD_RECIPIENT } from "@/lib/game/demo";
 import { computeLocalScore } from "@/lib/game/scoring";
@@ -35,6 +37,7 @@ function sleep(ms: number) {
 }
 
 export function BattleClient({ gameId }: BattleClientProps) {
+  const { messages } = useLocale();
   const [state, setState] = useState(() =>
     createInitialBattleState(gameId, {
       smartAccount: DEMO_PLAYER,
@@ -42,7 +45,7 @@ export function BattleClient({ gameId }: BattleClientProps) {
     }),
   );
   const [statusMessage, setStatusMessage] = useState(
-    "First roll uses backend authority. CAST stays local-only in this phase.",
+    messages.battle.initialStatus,
   );
   const [lastDiceRttMs, setLastDiceRttMs] = useState<number | null>(null);
   const [isSnapshotReady, setIsSnapshotReady] = useState(false);
@@ -53,11 +56,11 @@ export function BattleClient({ gameId }: BattleClientProps) {
 
     if (restoredState) {
       setState(restoredState);
-      setStatusMessage("Recovered the local battle snapshot from this tab.");
+      setStatusMessage(messages.battle.restoredSnapshot);
     }
 
     setIsSnapshotReady(true);
-  }, [gameId]);
+  }, [gameId, messages.battle.restoredSnapshot]);
 
   useEffect(() => {
     if (!isSnapshotReady) {
@@ -74,14 +77,17 @@ export function BattleClient({ gameId }: BattleClientProps) {
     state.diceActionState === "idle" &&
     state.castActionState === "idle" &&
     (state.rollCount === 0 || (state.rollCount < 3 && hasUnlockedDice));
-  const diceButtonLabel = state.castActionState === "waiting" ? "正在施法" : "ROLL";
+  const diceButtonLabel =
+    state.castActionState === "waiting"
+      ? messages.battle.dice.castingButton
+      : messages.battle.dice.rollButton;
 
   async function runDiceAction(action: () => Promise<Awaited<ReturnType<typeof rollDice>>>) {
     setState((currentState) => ({
       ...currentState,
       diceActionState: "waiting",
     }));
-    setStatusMessage("Requesting authoritative dice from the cloud dealer...");
+    setStatusMessage(messages.battle.requestingDice);
 
     const requestStartedAt = performance.now();
 
@@ -102,8 +108,8 @@ export function BattleClient({ gameId }: BattleClientProps) {
         }));
         setStatusMessage(
           result.rollCount === 1
-            ? "Authoritative dice received. Lock what you want to keep, then press ROLL again."
-            : "Reroll synced from backend. Locked dice stayed highlighted for the next decision.",
+            ? messages.battle.diceReceivedFirst
+            : messages.battle.diceReceivedReroll,
         );
       });
     } catch (error) {
@@ -119,7 +125,7 @@ export function BattleClient({ gameId }: BattleClientProps) {
           diceActionState: "idle",
           syncStatus: "RETRYABLE_FAIL",
         }));
-        setStatusMessage(error instanceof Error ? error.message : "Dice request failed.");
+        setStatusMessage(error instanceof Error ? error.message : messages.battle.diceRequestFailed);
       });
     }
   }
@@ -174,11 +180,11 @@ export function BattleClient({ gameId }: BattleClientProps) {
     const nextState = applyLocalCast(state, slotId);
     const nextStatusMessage = nextState.finished
       ? nextState.won
-        ? `Final CAST dealt ${score.totalDamage} damage and defeated the boss.`
-        : `Final CAST dealt ${score.totalDamage} damage, but the boss survived all 13 slots.`
+        ? messages.battle.finalCastWin(score.totalDamage)
+        : messages.battle.finalCastLose(score.totalDamage)
       : score.bonusDamage > 0
-        ? `CAST dealt ${score.totalDamage} damage, including the +35 upper bonus.`
-        : `CAST dealt ${score.totalDamage} damage.`;
+        ? messages.battle.castWithBonus(score.totalDamage, score.bonusDamage)
+        : messages.battle.castNormal(score.totalDamage);
 
     startTransition(() => {
       setState({
@@ -203,7 +209,7 @@ export function BattleClient({ gameId }: BattleClientProps) {
               castActionState: "idle",
               syncStatus: "LOCAL_APPLIED",
             }));
-            setStatusMessage(`${nextStatusMessage} Spell sync complete. Next round is ready.`);
+            setStatusMessage(messages.battle.spellSyncComplete(nextStatusMessage));
           });
         } catch (error) {
           startTransition(() => {
@@ -213,9 +219,9 @@ export function BattleClient({ gameId }: BattleClientProps) {
               syncStatus: "RETRYABLE_FAIL",
             }));
             setStatusMessage(
-              error instanceof Error
-                ? `Local CAST applied, but backend round advance failed: ${error.message}`
-                : "Local CAST applied, but backend round advance failed.",
+              messages.battle.localCastAdvanceFailed(
+                error instanceof Error ? error.message : undefined,
+              ),
             );
           });
         }
@@ -227,7 +233,7 @@ export function BattleClient({ gameId }: BattleClientProps) {
     return (
       <main className="min-h-screen px-6 py-10">
         <div className="mx-auto max-w-6xl rounded-[28px] border border-white/10 bg-slate-950/50 p-8 text-sm text-slate-300">
-          Restoring local battle snapshot...
+          {messages.battle.restoringSnapshot}
         </div>
       </main>
     );
@@ -240,21 +246,24 @@ export function BattleClient({ gameId }: BattleClientProps) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
-                Classic Battle Board
+                {messages.battle.boardEyebrow}
               </p>
               <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
-                ProtoMon Yahtzee Battle
+                {messages.battle.boardTitle}
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-                左侧先预留 ProtoMon 与未来被动位，中间集中战斗与掷骰流程，右侧固定放积分板。
+                {messages.battle.boardDescription}
               </p>
             </div>
             <div className="flex flex-col gap-2 text-right">
-              <div className="inline-flex rounded-full border border-cyan-200/20 bg-cyan-300/10 px-4 py-2 text-sm text-cyan-100">
-                gameId: {gameId}
+              <div className="flex flex-col items-end gap-2">
+                <LanguageSwitcher compact />
+                <div className="inline-flex rounded-full border border-cyan-200/20 bg-cyan-300/10 px-4 py-2 text-sm text-cyan-100">
+                  {messages.battle.gameIdLabel}: {gameId}
+                </div>
               </div>
               <Link href="/" className="text-sm text-slate-400 transition hover:text-white">
-                Back to Lobby
+                {messages.battle.backToLobby}
               </Link>
             </div>
           </div>

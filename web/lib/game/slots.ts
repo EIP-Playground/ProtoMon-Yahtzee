@@ -14,6 +14,8 @@ export const SLOT_LABELS = [
   "Chance",
 ] as const;
 
+export type SlotLabel = (typeof SLOT_LABELS)[number];
+
 export const SLOT_DEFINITIONS = [
   { id: 0, key: "Upper1", title: "💧 Water / Ones", group: "upper" },
   { id: 1, key: "Upper2", title: "⚙️ Metal / Twos", group: "upper" },
