@@ -33,6 +33,11 @@ type LocaleMessages = {
     createMessages: readonly string[];
     eyebrow: string;
     title: string;
+    subtitle: string;
+    reactiveHeadlinePrefix: string;
+    reactiveHeadlineHighlight: string;
+    reactiveHeadlineSuffix: string;
+    slogan: string;
     description: string;
     demoPlayerLabel: string;
     startButtonIdle: string;
@@ -174,7 +179,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       language: "语言",
       locales: {
         "zh-CN": "中文",
-        en: "English",
+        en: "EN",
       },
     },
     loading: {
@@ -213,7 +218,12 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         "为你展开第一场试炼…",
       ],
       eyebrow: "PROTO MON / ELEMENTAL ALCHEMY",
-      title: "PROTOMON：元素炼金",
+      title: "ProtoMon",
+      subtitle: "ELEMENTAL ALCHEMY",
+      reactiveHeadlinePrefix: "首款基于 ",
+      reactiveHeadlineHighlight: "Reactive Network",
+      reactiveHeadlineSuffix: " 驱动的无信任跨链肉鸽游戏",
+      slogan: "体验在云，资产在链，快乐无限~",
       description:
         "经典快艇骰子主循环先跑起来，再轻度包上 ProtoMon 世界观。后端负责权威骰面，首页先做像素风入口与钱包接入。",
       demoPlayerLabel: "Demo player",
@@ -248,9 +258,9 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       mainnetRewardLabel: "主网宝箱",
       crossChainCaption: "L2 数据桥就位，主网奖励跃迁待发。",
       footerTagline: "FULLY ON-CHAIN. FULLY FUN.",
-      footerCopyright: "© 2026 ProtoMonDAO",
-      footerLeftLinks: ["X", "DC", "GH"],
-      footerRightLinks: ["DOCS", "WIKI"],
+      footerCopyright: "© 2026 EIP-Playground ProtoMon",
+      footerLeftLinks: ["GitHub", "X"],
+      footerRightLinks: ["Team"],
       errorCreateGame: "创建 Demo 对战失败。",
     },
     battle: {
@@ -393,7 +403,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       language: "Language",
       locales: {
         "zh-CN": "中文",
-        en: "English",
+        en: "EN",
       },
     },
     loading: {
@@ -433,7 +443,12 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         "Opening the first trial…",
       ],
       eyebrow: "PROTO MON / ELEMENTAL ALCHEMY",
-      title: "PROTOMON: ELEMENTAL ALCHEMY",
+      title: "ProtoMon",
+      subtitle: "ELEMENTAL ALCHEMY",
+      reactiveHeadlinePrefix: "The first trustless cross-chain roguelike driven by ",
+      reactiveHeadlineHighlight: "Reactive Network",
+      reactiveHeadlineSuffix: "",
+      slogan: "Play in the cloud, own on-chain, fun without limits~",
       description:
         "The classic Yahtzee loop comes first, wrapped in a light ProtoMon shell. The backend owns authoritative dice, while the home page becomes a pixel-art lobby with wallet entry.",
       demoPlayerLabel: "Demo player",
@@ -468,9 +483,9 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       mainnetRewardLabel: "Mainnet Reward",
       crossChainCaption: "L2 bridge aligned. Mainnet reward beam is ready.",
       footerTagline: "FULLY ON-CHAIN. FULLY FUN.",
-      footerCopyright: "© 2026 ProtoMonDAO",
-      footerLeftLinks: ["X", "DISCORD", "GITHUB"],
-      footerRightLinks: ["DOCS", "WIKI"],
+      footerCopyright: "© 2026 EIP-Playground ProtoMon",
+      footerLeftLinks: ["GitHub", "X"],
+      footerRightLinks: ["Team"],
       errorCreateGame: "Failed to create a demo game.",
     },
     battle: {

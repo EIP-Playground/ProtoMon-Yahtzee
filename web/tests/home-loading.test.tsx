@@ -77,7 +77,8 @@ describe("Home loading flows", () => {
     });
 
     expect(screen.queryByTestId("loading-timed")).not.toBeInTheDocument();
-    expect(screen.getByText("PROTOMON：元素炼金")).toBeInTheDocument();
+    expect(screen.getByText("ProtoMon")).toBeInTheDocument();
+    expect(screen.getByText("ELEMENTAL ALCHEMY")).toBeInTheDocument();
   });
 
   it("keeps create-game loading on screen for at least 2600ms and finishes before navigation", async () => {

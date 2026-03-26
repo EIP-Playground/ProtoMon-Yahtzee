@@ -1,5 +1,7 @@
 "use client";
 
+import { FaChevronUp } from "react-icons/fa6";
+
 import { useLocale } from "@/components/providers/LocaleProvider";
 
 type BackToTopButtonProps = {
@@ -21,7 +23,7 @@ export function BackToTopButton({ visible }: BackToTopButtonProps) {
           : "pointer-events-none translate-y-3 opacity-0",
       ].join(" ")}
     >
-      <span className="pixel-font text-[0.78rem] leading-none">↑</span>
+      <FaChevronUp className="h-[0.98rem] w-[0.98rem]" aria-hidden="true" />
     </button>
   );
 }

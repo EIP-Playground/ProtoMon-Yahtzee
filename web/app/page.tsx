@@ -10,7 +10,6 @@ import { LoadingPage } from "@/components/loading/LoadingPage";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { createGameSession } from "@/lib/api/backend";
 import { DEMO_PLAYER, DEMO_REWARD_RECIPIENT } from "@/lib/game/demo";
-import type { DealerStatus } from "@/lib/home/layout";
 import { LOADING_MIN_CREATE_DURATION_MS } from "@/lib/ui/loading";
 
 const ENTRY_LOADING_KEY = "protomon:entry-loading:seen";
@@ -28,7 +27,6 @@ function wait(ms: number) {
 export default function Home() {
   const router = useRouter();
   const { messages } = useLocale();
-  const [dealerStatus, setDealerStatus] = useState<DealerStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNavigating, startTransition] = useTransition();
   const [isCreating, setIsCreating] = useState(false);
@@ -73,7 +71,6 @@ export default function Home() {
 
   async function handleStartBattle() {
     setErrorMessage(null);
-    setDealerStatus("waiting");
     setIsCreating(true);
     setCreateReady(false);
     setPendingGameId(null);
@@ -96,12 +93,10 @@ export default function Home() {
 
       setPendingGameId(session.gameId);
       setCreateReady(true);
-      setDealerStatus("online");
     } catch (error) {
       setIsCreating(false);
       setCreateReady(false);
       setPendingGameId(null);
-      setDealerStatus("error");
       setErrorMessage(error instanceof Error ? error.message : messages.home.errorCreateGame);
     }
   }
@@ -154,7 +149,7 @@ export default function Home() {
         errorMessage={errorMessage}
         isBusy={isCreating || isNavigating}
         onStartBattle={handleStartBattle}
-        heroTopControls={<HomeWalletHud dealerStatus={dealerStatus} />}
+        heroTopControls={<HomeWalletHud />}
       />
       <BackToTopButton visible={showBackToTop} />
     </main>

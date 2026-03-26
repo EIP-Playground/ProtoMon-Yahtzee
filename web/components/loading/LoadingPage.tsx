@@ -266,18 +266,18 @@ export function LoadingPage({
       <div className="relative z-10 flex w-full max-w-lg flex-col items-center gap-6 px-6">
         <div className="mb-2 text-center">
           <h1
-            className="mb-1 text-2xl font-bold tracking-widest uppercase sm:text-3xl"
+            className="mb-2 text-3xl tracking-[0.08em] uppercase sm:text-4xl"
             style={{
               fontFamily: "var(--font-heading), var(--font-pixel-ui), monospace",
               color: "#FFD700",
               textShadow: "0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,165,0,0.3)",
-              lineHeight: 1.4,
+              lineHeight: 1.28,
             }}
           >
             {resolvedTitle}
           </h1>
           <p
-            className="text-xs tracking-widest"
+            className="text-sm tracking-[0.08em] sm:text-base"
             style={{
               fontFamily: "var(--font-pixel-ui), monospace",
               color: "#00E5FF",
@@ -293,7 +293,7 @@ export function LoadingPage({
 
           <div className="flex w-full items-center justify-between px-1">
             <span
-              className="text-xs"
+              className="text-sm sm:text-base"
               style={{
                 fontFamily: "var(--font-pixel-ui), monospace",
                 color: "#00E5FF",
@@ -303,7 +303,7 @@ export function LoadingPage({
               {progress}%
             </span>
             <span
-              className="text-xs"
+              className="text-sm sm:text-base"
               style={{
                 fontFamily: "var(--font-pixel-ui), monospace",
                 color: done ? "#FFD700" : "#4a6fa5",
@@ -318,7 +318,7 @@ export function LoadingPage({
 
         <div className="flex h-8 items-center justify-center" style={{ minHeight: 32 }}>
           <p
-            className="text-center text-xs transition-opacity duration-300"
+            className="text-center text-sm transition-opacity duration-300 sm:text-base"
             style={{
               fontFamily: "var(--font-pixel-ui), var(--font-orbitron), monospace",
               color: "#7ecfff",
@@ -332,7 +332,7 @@ export function LoadingPage({
         </div>
 
         <p
-          className="mt-4 text-xs opacity-40"
+          className="mt-4 text-sm opacity-40 sm:text-base"
           style={{
             fontFamily: "var(--font-pixel-ui), monospace",
             color: "#ffffff",

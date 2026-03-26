@@ -1,16 +1,14 @@
 "use client";
 
+import { FaGithub, FaPlay, FaUsers, FaXTwitter } from "react-icons/fa6";
 import type { ReactNode } from "react";
 
 import { HomeArt, HomeStage } from "@/components/home/HomeStage";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import {
-  ALCHEMY_ART,
-  CROSS_CHAIN_ART,
-  HERO_ART,
-  HOME_STAGES,
-  MEET_CARD_ART,
-} from "@/lib/home/layout";
+import { ALCHEMY_ART, CROSS_CHAIN_ART, HERO_ART, HOME_STAGES, MEET_CARD_ART } from "@/lib/home/layout";
+
+const FOOTER_LEFT_TYPES = ["github", "x"] as const;
+const FOOTER_RIGHT_TYPES = ["team"] as const;
 
 type HomeLandingProps = {
   errorMessage: string | null;
@@ -26,25 +24,30 @@ export function HomeLanding({
   heroTopControls,
 }: HomeLandingProps) {
   const { messages } = useLocale();
+  const footerRightType = FOOTER_RIGHT_TYPES[0] as FooterIconType;
+  const footerRightLabel = messages.home.footerRightLinks[0] ?? footerRightType;
 
   return (
-    <div className="home-shell relative overflow-x-hidden bg-[#070d16] pb-[1.8vw]">
-      <HomeStage stage={HOME_STAGES.hero} priority>
-        {heroTopControls ? (
-          <div className="absolute inset-x-[2.6%] top-[1.6%] z-[40]">
-            {heroTopControls}
-          </div>
-        ) : null}
+    <div className="home-shell relative overflow-x-hidden bg-[#070d16]">
+      {heroTopControls}
 
-        <div className="absolute left-[50%] top-[7.2%] z-10 w-[80%] -translate-x-1/2 text-center">
-          <p className="pixel-font text-[clamp(0.62rem,1.18vw,0.92rem)] tracking-[0.18em] text-[#fef3b2] drop-shadow-[0_0.2rem_0_rgba(10,19,35,0.68)]">
-            {messages.home.eyebrow}
-          </p>
-          <h1 className="pixel-font mt-[1.6%] text-[clamp(2rem,5.2vw,4.2rem)] leading-[1.04] text-[#ffcc57] [text-shadow:0_0.22rem_0_#0b1322,0_0.4rem_0_rgba(10,19,35,0.85)]">
+      <HomeStage stage={HOME_STAGES.hero} priority>
+        <div
+          className="absolute left-1/2 z-10 w-[72%] -translate-x-1/2 text-center"
+          style={{
+            top: "calc(var(--home-top-nav-height, 0px) + clamp(1rem, 2vw, 1.7rem))",
+          }}
+        >
+          <h1 className="hero-title-primary pixel-font mt-[1.4%] text-[clamp(2.25rem,5.9vw,4.9rem)] leading-[1.02] text-[#ffcc57]">
             {messages.home.title}
           </h1>
-          <p className="pixel-font mx-auto mt-[2.4%] max-w-[78%] text-[clamp(0.78rem,1.5vw,1.2rem)] leading-[1.62] text-slate-100/95">
-            {messages.home.description}
+          <p className="hero-title-secondary pixel-font mx-auto mt-[1.2%] text-[clamp(1.05rem,2.36vw,2rem)] leading-[1.1] text-white">
+            {messages.home.subtitle}
+          </p>
+          <p className="hero-reactive-line pixel-font mx-auto mt-[1.6%] max-w-[92%] text-[clamp(0.72rem,1.3vw,1.02rem)] leading-[1.38] text-white/96">
+            <span>{messages.home.reactiveHeadlinePrefix}</span>
+            <span className="reactive-network-glow">{messages.home.reactiveHeadlineHighlight}</span>
+            <span>{messages.home.reactiveHeadlineSuffix}</span>
           </p>
         </div>
 
@@ -52,7 +55,7 @@ export function HomeLanding({
           <HomeArt key={art.src} art={art} />
         ))}
 
-        <div className="absolute left-1/2 top-[80.8%] z-20 w-[clamp(12.8rem,25vw,18.2rem)] -translate-x-1/2 text-center">
+        <div className="absolute left-1/2 top-[80.5%] z-20 w-[clamp(12.2rem,23vw,17rem)] -translate-x-1/2 text-center">
           <button
             type="button"
             onClick={onStartBattle}
@@ -60,15 +63,15 @@ export function HomeLanding({
             aria-label={isBusy ? messages.home.startButtonBusy : messages.home.startButtonIdle}
             className="pixel-cta-button w-full disabled:cursor-not-allowed disabled:opacity-70"
           >
-            <span className="pixel-font block text-[clamp(0.96rem,1.65vw,1.3rem)] text-[#fff6c8]">
-              {isBusy ? messages.home.startButtonBusy : messages.home.startButtonIdle}
-            </span>
-            <span className="pixel-font mt-[2.2%] block text-[clamp(0.68rem,1vw,0.9rem)] text-[#dceeff]">
-              {messages.home.startButtonCaption}
+            <span className="flex items-center justify-center gap-3">
+              <FaPlay className="cta-play-icon" aria-hidden="true" />
+              <span className="pixel-font block text-[clamp(0.92rem,1.74vw,1.34rem)] text-[#fff6c8]">
+                {isBusy ? messages.home.startButtonBusy : messages.home.startButtonIdle}
+              </span>
             </span>
           </button>
           {errorMessage ? (
-            <p className="pixel-font mt-[4.8%] text-[clamp(0.72rem,1.1vw,0.96rem)] leading-[1.6] text-[#ffd1d1]">
+            <p className="pixel-font mt-[4.8%] text-[clamp(0.56rem,1.02vw,0.82rem)] leading-[1.65] text-[#ffd1d1]">
               {errorMessage}
             </p>
           ) : null}
@@ -77,29 +80,18 @@ export function HomeLanding({
 
       <HomeStage stage={HOME_STAGES.meet}>
         <div className="absolute left-1/2 top-[7.6%] z-10 w-[82%] -translate-x-1/2 text-center">
-          <h2 className="pixel-font text-[clamp(1.04rem,2.35vw,1.92rem)] text-[#eef8ff] [text-shadow:0_0.18rem_0_rgba(8,17,31,0.88)]">
+          <h2 className="section-title-glow pixel-font text-[clamp(1rem,2.1vw,1.62rem)] text-[#eef8ff]">
             {messages.home.meetTitle}
           </h2>
         </div>
-        {MEET_CARD_ART.map((art, index) => (
-          <div key={art.src}>
-            <HomeArt art={art} />
-            <div
-              className="absolute z-20 text-center"
-              style={{
-                left: `${art.left + 0.7}%`,
-                top: "78.1%",
-                width: `${art.width - 2.8}%`,
-              }}
-            >
-            </div>
-          </div>
+        {MEET_CARD_ART.map((art) => (
+          <HomeArt key={art.src} art={art} />
         ))}
       </HomeStage>
 
       <HomeStage stage={HOME_STAGES.alchemy}>
         <div className="absolute left-1/2 top-[7.4%] z-10 w-[84%] -translate-x-1/2 text-center">
-          <h2 className="pixel-font text-[clamp(1.04rem,2.35vw,1.92rem)] text-[#eef8ff] [text-shadow:0_0.18rem_0_rgba(8,17,31,0.88)]">
+          <h2 className="section-title-glow pixel-font text-[clamp(1rem,2.1vw,1.62rem)] text-[#eef8ff]">
             {messages.home.alchemyTitle}
           </h2>
         </div>
@@ -116,52 +108,80 @@ export function HomeLanding({
 
       <HomeStage stage={HOME_STAGES.crossChain}>
         <div className="absolute left-1/2 top-[7.4%] z-10 w-[86%] -translate-x-1/2 text-center">
-          <h2 className="pixel-font text-[clamp(1.02rem,2.18vw,1.78rem)] text-[#eef8ff] [text-shadow:0_0.18rem_0_rgba(8,17,31,0.88)]">
+          <h2 className="section-title-glow pixel-font text-[clamp(1.14rem,2.3vw,1.8rem)] text-[#eef8ff]">
             {messages.home.crossChainTitle}
           </h2>
         </div>
         {CROSS_CHAIN_ART.map((art) => (
           <HomeArt key={art.src} art={art} />
         ))}
-        <div className="absolute left-[39.8%] top-[75.9%] z-10 w-[15.8%] text-center">
-          <p className="pixel-tag text-[clamp(0.58rem,0.9vw,0.78rem)]">{messages.home.reactiveNodeLabel}</p>
+        <div className="absolute left-[41.4%] top-[68.6%] z-10 w-[17.2%] text-center">
+          <p className="pixel-tag text-[clamp(0.82rem,1.34vw,1.12rem)]">{messages.home.reactiveNodeLabel}</p>
         </div>
-        <div className="absolute left-[70.2%] top-[75.1%] z-10 w-[12.8%] text-center">
-          <p className="pixel-tag text-[clamp(0.58rem,0.9vw,0.78rem)]">{messages.home.mainnetRewardLabel}</p>
+        <div className="absolute left-[71.8%] top-[83.4%] z-10 w-[15.8%] text-center">
+          <p className="pixel-tag text-[clamp(0.82rem,1.34vw,1.12rem)]">{messages.home.mainnetRewardLabel}</p>
         </div>
-        <div className="absolute left-[32.6%] top-[84.1%] z-10 w-[35%] text-center">
-          <p className="pixel-font text-[clamp(0.66rem,1vw,0.9rem)] text-sky-100/96">
+        <div className="absolute left-[31.8%] top-[82.4%] z-10 w-[37%] text-center">
+          <p className="pixel-font text-[clamp(0.84rem,1.26vw,1.02rem)] text-sky-100/96 [text-shadow:0_0_0.14rem_rgba(12,22,35,0.9),0_0_0.8rem_rgba(88,211,255,0.34)]">
             {messages.home.crossChainCaption}
           </p>
         </div>
       </HomeStage>
 
       <HomeStage stage={HOME_STAGES.footer} className="-mt-[0.2%]">
-        <div className="absolute inset-x-[5%] top-[42.5%] z-10 flex items-center justify-between gap-[3%]">
-          <div className="flex flex-wrap gap-[1.2%]">
-            {messages.home.footerLeftLinks.map((label) => (
-              <span key={label} className="pixel-footer-chip">
-                {label}
-              </span>
-            ))}
+        <div className="absolute inset-x-[4.2%] top-[17%] z-10 flex items-start justify-between gap-[2%] md:top-[19%]">
+          <div className="flex min-w-0 flex-1 items-start gap-[3%]">
+            {FOOTER_LEFT_TYPES.map((type, index) => {
+              const label = messages.home.footerLeftLinks[index] ?? type;
+
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  aria-label={label}
+                  className="pixel-stone-button footer-stone-button inline-flex shrink-0 items-center justify-center text-[#fff6c8]"
+                >
+                  <FooterIcon type={type as FooterIconType} />
+                </button>
+              );
+            })}
           </div>
-          <div className="flex flex-wrap justify-end gap-[1.2%]">
-            {messages.home.footerRightLinks.map((label) => (
-              <span key={label} className="pixel-footer-chip">
-                {label}
-              </span>
-            ))}
+          <div className="min-w-0 flex-[1.2] pt-[0.18rem] text-center">
+            <p className="pixel-font text-[clamp(0.48rem,0.86vw,0.7rem)] text-slate-100/94 [text-shadow:0_0_0.1rem_rgba(8,17,31,0.9),0_0_0.55rem_rgba(170,220,255,0.18)]">
+              {messages.home.footerTagline}
+            </p>
+            <p className="pixel-font mt-1 text-[clamp(0.42rem,0.74vw,0.58rem)] text-slate-200/82 [text-shadow:0_0_0.08rem_rgba(8,17,31,0.88)]">
+              {messages.home.footerCopyright}
+            </p>
           </div>
-        </div>
-        <div className="absolute left-1/2 top-[60.2%] z-10 w-[72%] -translate-x-1/2 text-center">
-          <p className="pixel-font text-[clamp(0.62rem,0.98vw,0.88rem)] text-slate-100/95">
-            {messages.home.footerTagline}
-          </p>
-          <p className="pixel-font mt-[1.1%] text-[clamp(0.52rem,0.82vw,0.74rem)] text-slate-300/86">
-            {messages.home.footerCopyright}
-          </p>
+          <div className="flex min-w-0 flex-1 items-start justify-end">
+            <button
+              type="button"
+              aria-label={footerRightLabel}
+              className="pixel-stone-button footer-stone-button inline-flex shrink-0 items-center justify-center text-[#fff6c8]"
+            >
+              <FooterIcon type={footerRightType} />
+            </button>
+          </div>
         </div>
       </HomeStage>
     </div>
   );
 }
+
+function FooterIcon({
+  type,
+}: {
+  type: FooterIconType;
+}) {
+  switch (type) {
+    case "github":
+      return <FaGithub className="footer-lucide-icon" aria-hidden="true" />;
+    case "x":
+      return <FaXTwitter className="footer-lucide-icon" aria-hidden="true" />;
+    case "team":
+      return <FaUsers className="footer-lucide-icon" aria-hidden="true" />;
+  }
+}
+
+type FooterIconType = "github" | "x" | "team";

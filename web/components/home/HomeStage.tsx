@@ -44,20 +44,30 @@ export function HomeArt({ art }: HomeArtProps) {
   const style: CSSProperties & {
     "--art-width": string;
     "--art-mobile-width": string;
+    "--art-left": string;
+    "--art-mobile-left": string;
+    "--art-top": string;
+    "--art-mobile-top": string;
   } = {
-    left: `${art.left}%`,
-    top: `${art.top}%`,
     "--art-width": `${art.width}%`,
     "--art-mobile-width": `${art.mobileWidth ?? art.width}%`,
+    "--art-left": `${art.left}%`,
+    "--art-mobile-left": `${art.mobileLeft ?? art.left}%`,
+    "--art-top": `${art.top}%`,
+    "--art-mobile-top": `${art.mobileTop ?? art.top}%`,
     zIndex: art.zIndex ?? 1,
     opacity: art.opacity ?? 1,
     maxWidth: art.maxWidthVw ? `${art.maxWidthVw}vw` : undefined,
     transform: art.rotate ? `rotate(${art.rotate}deg)` : undefined,
+    animationDelay: art.animationDelayMs ? `${art.animationDelayMs}ms` : undefined,
   };
 
   return (
     <div
-      className="absolute w-[var(--art-mobile-width)] sm:w-[var(--art-width)]"
+      className={[
+        "absolute left-[var(--art-mobile-left)] top-[var(--art-mobile-top)] w-[var(--art-mobile-width)] md:left-[var(--art-left)] md:top-[var(--art-top)] md:w-[var(--art-width)]",
+        art.className ?? "",
+      ].join(" ")}
       style={style}
     >
       <Image

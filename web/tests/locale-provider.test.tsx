@@ -44,7 +44,7 @@ describe("LocaleProvider", () => {
     );
     expect(screen.getByText("立即开战")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "English" }));
+    await user.click(screen.getByRole("button", { name: "EN" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("locale-value")).toHaveTextContent("en"),
@@ -55,7 +55,7 @@ describe("LocaleProvider", () => {
     expect(document.documentElement.dataset.locale).toBe("en");
   });
 
-  it("does not bounce back to zh-CN after selecting English", async () => {
+  it("does not bounce back to zh-CN after selecting EN", async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(LOCALE_STORAGE_KEY, "zh-CN");
 
@@ -70,7 +70,7 @@ describe("LocaleProvider", () => {
       expect(screen.getByTestId("locale-value")).toHaveTextContent("zh-CN"),
     );
 
-    await user.click(screen.getByRole("button", { name: "English" }));
+    await user.click(screen.getByRole("button", { name: "EN" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("locale-value")).toHaveTextContent("en"),
