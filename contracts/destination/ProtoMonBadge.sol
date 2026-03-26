@@ -8,10 +8,10 @@ contract ProtoMonBadge {
 
     address public owner;
     address public callbackProxy;
-    address public reactiveContract;
+    address public authorizedRvmId;
 
     event BadgeMinted(bytes32 indexed gameId, address indexed recipient, uint8 bossId);
-    event ReactiveContractUpdated(address indexed newReactiveContract);
+    event AuthorizedRvmIdUpdated(address indexed newAuthorizedRvmId);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     modifier onlyOwner() {
@@ -27,7 +27,7 @@ contract ProtoMonBadge {
 
     function reactiveMint(address rvmId, bytes32 gameId, address recipient, uint8 bossId) external {
         require(msg.sender == callbackProxy, "ProtoMonBadge: invalid callback sender");
-        require(rvmId == reactiveContract, "ProtoMonBadge: invalid rvmId");
+        require(rvmId == authorizedRvmId, "ProtoMonBadge: invalid rvmId");
         require(gameId != bytes32(0), "ProtoMonBadge: gameId is zero");
         require(recipient != address(0), "ProtoMonBadge: recipient is zero");
         require(!minted[gameId], "ProtoMonBadge: badge already minted");
@@ -39,11 +39,11 @@ contract ProtoMonBadge {
         emit BadgeMinted(gameId, recipient, bossId);
     }
 
-    function setReactiveContract(address newReactiveContract) external onlyOwner {
-        require(newReactiveContract != address(0), "ProtoMonBadge: reactive contract is zero");
+    function setAuthorizedRvmId(address newAuthorizedRvmId) external onlyOwner {
+        require(newAuthorizedRvmId != address(0), "ProtoMonBadge: rvmId is zero");
 
-        reactiveContract = newReactiveContract;
-        emit ReactiveContractUpdated(newReactiveContract);
+        authorizedRvmId = newAuthorizedRvmId;
+        emit AuthorizedRvmIdUpdated(newAuthorizedRvmId);
     }
 
     function transferOwnership(address newOwner) external onlyOwner {

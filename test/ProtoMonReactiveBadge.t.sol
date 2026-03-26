@@ -49,6 +49,7 @@ contract ProtoMonReactiveBadgeTest is MinimalTest {
             CALLBACK_PROXY,
             "callback proxy mismatch"
         );
+        assertEq(reactiveBadge.vm(), true, "local test deploy should be vm instance");
     }
 
     function test_constructor_rejectsZeroOriginChain() public {

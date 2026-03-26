@@ -26,24 +26,24 @@ contract ProtoMonBadgeTest is MinimalTest {
     }
 
     function test_setReactiveContract_updatesValue() public {
-        badge.setReactiveContract(REACTIVE_CONTRACT);
+        badge.setAuthorizedRvmId(REACTIVE_CONTRACT);
 
         assertEq(
-            badge.reactiveContract(),
+            badge.authorizedRvmId(),
             REACTIVE_CONTRACT,
-            "reactive contract should update"
+            "authorized rvm id should update"
         );
     }
 
     function test_setReactiveContract_rejectsNonOwner() public {
         vm.prank(address(0x1234));
         vm.expectRevert(bytes("ProtoMonBadge: only owner"));
-        badge.setReactiveContract(REACTIVE_CONTRACT);
+        badge.setAuthorizedRvmId(REACTIVE_CONTRACT);
     }
 
     function test_setReactiveContract_rejectsZeroAddress() public {
-        vm.expectRevert(bytes("ProtoMonBadge: reactive contract is zero"));
-        badge.setReactiveContract(address(0));
+        vm.expectRevert(bytes("ProtoMonBadge: rvmId is zero"));
+        badge.setAuthorizedRvmId(address(0));
     }
 
     function test_transferOwnership_updatesOwner() public {
@@ -67,7 +67,7 @@ contract ProtoMonBadgeTest is MinimalTest {
 
     function test_reactiveMint_recordsBadgeState() public {
         bytes32 gameId = keccak256("badge-success");
-        badge.setReactiveContract(REACTIVE_CONTRACT);
+        badge.setAuthorizedRvmId(REACTIVE_CONTRACT);
 
         vm.prank(CALLBACK_PROXY);
         badge.reactiveMint(REACTIVE_CONTRACT, gameId, RECIPIENT, 1);
@@ -79,7 +79,7 @@ contract ProtoMonBadgeTest is MinimalTest {
 
     function test_reactiveMint_rejectsWrongCallbackSender() public {
         bytes32 gameId = keccak256("badge-wrong-sender");
-        badge.setReactiveContract(REACTIVE_CONTRACT);
+        badge.setAuthorizedRvmId(REACTIVE_CONTRACT);
 
         vm.expectRevert(bytes("ProtoMonBadge: invalid callback sender"));
         badge.reactiveMint(REACTIVE_CONTRACT, gameId, RECIPIENT, 1);
@@ -87,7 +87,7 @@ contract ProtoMonBadgeTest is MinimalTest {
 
     function test_reactiveMint_rejectsWrongRvmId() public {
         bytes32 gameId = keccak256("badge-wrong-rvm");
-        badge.setReactiveContract(REACTIVE_CONTRACT);
+        badge.setAuthorizedRvmId(REACTIVE_CONTRACT);
 
         vm.prank(CALLBACK_PROXY);
         vm.expectRevert(bytes("ProtoMonBadge: invalid rvmId"));
@@ -96,7 +96,7 @@ contract ProtoMonBadgeTest is MinimalTest {
 
     function test_reactiveMint_rejectsDuplicateGameId() public {
         bytes32 gameId = keccak256("badge-duplicate");
-        badge.setReactiveContract(REACTIVE_CONTRACT);
+        badge.setAuthorizedRvmId(REACTIVE_CONTRACT);
 
         vm.prank(CALLBACK_PROXY);
         badge.reactiveMint(REACTIVE_CONTRACT, gameId, RECIPIENT, 1);
@@ -107,7 +107,7 @@ contract ProtoMonBadgeTest is MinimalTest {
     }
 
     function test_reactiveMint_rejectsZeroGameId() public {
-        badge.setReactiveContract(REACTIVE_CONTRACT);
+        badge.setAuthorizedRvmId(REACTIVE_CONTRACT);
 
         vm.prank(CALLBACK_PROXY);
         vm.expectRevert(bytes("ProtoMonBadge: gameId is zero"));
@@ -116,7 +116,7 @@ contract ProtoMonBadgeTest is MinimalTest {
 
     function test_reactiveMint_rejectsZeroRecipient() public {
         bytes32 gameId = keccak256("badge-zero-recipient");
-        badge.setReactiveContract(REACTIVE_CONTRACT);
+        badge.setAuthorizedRvmId(REACTIVE_CONTRACT);
 
         vm.prank(CALLBACK_PROXY);
         vm.expectRevert(bytes("ProtoMonBadge: recipient is zero"));

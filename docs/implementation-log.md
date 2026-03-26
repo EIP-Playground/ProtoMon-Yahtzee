@@ -66,6 +66,89 @@ Handoff note:
   - `startGame(...)`
   - `playTurn(...)`
 
+### 2026-03-26 20:10
+
+Scope:
+- Debugged repeated `Reactive Lasna` deployment failures for `ProtoMonReactiveBadge`.
+- Switched constructor-side subscription setup from a direct interface call to the officially recommended low-level call pattern that tolerates ReactVM-side reverts.
+
+Reason:
+- Real Lasna deployments kept reverting in constructor during `subscribe(...)`, even after funding and config fixes.
+- Reactive official `TECH.md` states that constructor subscriptions must "gracefully handle the reverts" because the same bytecode is deployed both to the public Reactive network and to a private ReactVM copy where the system contract is not present.
+- Our prior implementation used a direct `service.subscribe(...)` call, which can bubble the ReactVM-side revert and abort deployment.
+
+Changed files:
+- `contracts/reactive/ProtoMonReactiveBadge.sol`
+- `docs/implementation-log.md`
+
+Handoff note:
+- Re-run local `forge test` first to ensure the constructor behavior change did not break contract tests.
+- If tests stay green, retry `DeployReactive` on `Reactive Lasna`.
+
+### 2026-03-26 20:20
+
+Scope:
+- Fixed the local-test regression introduced by the constructor-side low-level subscription patch.
+
+Reason:
+- On local Foundry EVM, a low-level call to an address with no code returns success instead of mimicking Reactive ReactVM behavior.
+- That caused the contract to mis-detect local test deployments as non-VM instances, breaking the `vmOnly`-guarded `react(...)` tests.
+- The constructor now first checks whether the system contract address has code; if not, it marks the instance as `vm` immediately, otherwise it proceeds with the low-level `subscribe(...)` call and still tolerates failures.
+
+Changed files:
+- `contracts/reactive/ProtoMonReactiveBadge.sol`
+- `docs/implementation-log.md`
+
+Handoff note:
+- Re-run `forge test`.
+- If tests return to green, retry real `Reactive Lasna` deployment with the same environment variables.
+
+### 2026-03-26 20:35
+
+Scope:
+- Completed the first real testnet deployment pass for all three workflow layers.
+
+Deployment results:
+- `Origin / Ethereum Sepolia`
+  - address: `0x743aAd4ab89EaE037Fce8f69bB8e0937B566C9f1`
+- `Destination / Ethereum Sepolia`
+  - address: `0x34bF4ce1CF676c540fd931B5b4E2012E84ebcDb4`
+- `Reactive / Reactive Lasna`
+  - address: `0xD58e8A8f8BB05badDc2D5fe9AC1957d1e1aa90cE`
+
+Reason:
+- Confirm the contract package is not only locally tested, but also actually deployable on the intended testnets.
+- Establish real deployed contract addresses for the integration teammate.
+
+Changed files:
+- `docs/implementation-log.md`
+
+Handoff note:
+- Next step is destination-side authorization finalization:
+  - determine the correct `authorizedRvmId`
+  - call `setAuthorizedRvmId(...)` on `ProtoMonBadge`
+- After that, the remaining work shifts from contract deployment to workflow verification and integration.
+
+### 2026-03-26 20:50
+
+Scope:
+- Refreshed the teammate-facing code review / handoff document to reflect the real deployment pass, not only the earlier local contract pass.
+
+Reason:
+- The previous review note still described deployment as pending and no longer matched the current state after:
+  - successful Sepolia origin deployment
+  - successful Sepolia destination deployment
+  - successful Lasna reactive deployment
+  - successful destination `authorizedRvmId` backfill
+
+Changed files:
+- `docs/contract-code-review.md`
+- `docs/implementation-log.md`
+
+Handoff note:
+- The updated review document is now the best single-file entrypoint for the contract teammate.
+- Remaining work has shifted from contract authoring to integration and end-to-end workflow verification.
+
 ### 2026-03-26 01:20
 
 Scope:
@@ -802,3 +885,97 @@ Changed files:
 Handoff note:
 - Contract-side implementation, testing, and handoff documentation are now in place.
 - Remaining work is integration, not core contract-rule implementation.
+
+### 2026-03-26 07:15
+
+Scope:
+- Adjusted the contract package from “test-ready” to “real Reactive deployment-ready”.
+
+Implemented:
+- `ProtoMonReactiveBadge.sol`
+  - added real subscription registration via the Reactive system contract
+  - added VM-mode detection
+  - restricted `react(...)` to VM-mode execution
+- `ProtoMonBadge.sol`
+  - changed destination-side callback authorization semantics from “reactive contract address” to `authorizedRvmId`
+  - replaced `setReactiveContract(...)` with `setAuthorizedRvmId(...)`
+- `script/set-destination-rvm-id.s.sol`
+  - added a dedicated script to backfill the destination-side authorized RVM ID after Reactive deployment
+- updated deployment and handoff docs to reflect the real deployment model
+
+Reason:
+- A real Reactive deployment requires subscription registration on the Reactive network.
+- Destination-side callback validation must use the actual callback identity (`rvmId`), not a loose assumption about the deployed Reactive contract address.
+
+Changed files:
+- `contracts/destination/ProtoMonBadge.sol`
+- `contracts/reactive/ProtoMonReactiveBadge.sol`
+- `test/ProtoMonBadge.t.sol`
+- `test/ProtoMonReactiveBadge.t.sol`
+- `script/set-destination-rvm-id.s.sol`
+- `docs/deployment-workflow.md`
+- `docs/contract-code-review.md`
+- `docs/implementation-log.md`
+
+Verification note:
+- `forge build` passes after the real-deployment adjustments.
+- Next verification step is to rerun the full local `forge test` suite before starting Sepolia / Lasna deployment.
+
+Handoff note:
+- Once the updated test suite is green, the next step is to prepare exact deployment inputs for:
+  - Ethereum Sepolia origin
+  - Reactive Lasna
+  - Ethereum Sepolia destination
+
+### 2026-03-26 07:30
+
+Scope:
+- Tightened `ProtoMonReactiveBadge` to more closely match the official Reactive contract shape after the first Lasna deployment attempt failed during constructor subscription.
+
+Implemented:
+- Added minimal payer/service wiring:
+  - `vendor`
+  - `service`
+  - `senders`
+- Added minimum payment surface expected from Reactive-style contracts:
+  - `pay(uint256)`
+  - `receive()`
+- Added `authorizedSenderOnly`
+- Replaced ad hoc VM check with `detectVm()`-style initialization and mutable `vm` state
+- Kept constructor subscription logic, but now only after initializing service/vendor/authorized sender state
+
+Reason:
+- The first real Lasna deployment failed inside the constructor when calling the system contract `subscribe(...)`.
+- Official Reactive docs show that `AbstractReactive` and `AbstractPayer` provide additional structural behavior beyond a plain `react(...)` function.
+- The previous version was sufficient for local tests but still too thin for a real Reactive deployment attempt.
+
+Changed files:
+- `contracts/reactive/ProtoMonReactiveBadge.sol`
+- `docs/implementation-log.md`
+
+Handoff note:
+- Next step is to rerun `forge test` locally, then retry the Reactive Lasna deployment.
+
+### 2026-03-26 07:40
+
+Scope:
+- Fixed the second Lasna deployment blocker by adding constructor-time funding support to the Reactive deployment script.
+
+Implemented:
+- `script/deploy-reactive.s.sol`
+  - now reads `REACTIVE_INITIAL_FUNDING_WEI`
+  - deploys `ProtoMonReactiveBadge` with `{value: initialFundingWei}`
+- updated deployment runbook to require initial funding for real Lasna deployment
+
+Reason:
+- Official Reactive deployment guidance shows Reactive contracts being deployed with initial value.
+- Reactive economy docs state contracts must maintain sufficient REACT balance to execute Reactive-side transactions.
+- Our constructor subscribes immediately, so a zero-funded deployment is the wrong default for real-network deployment.
+
+Changed files:
+- `script/deploy-reactive.s.sol`
+- `docs/deployment-workflow.md`
+- `docs/implementation-log.md`
+
+Handoff note:
+- Next step is to set `REACTIVE_INITIAL_FUNDING_WEI`, confirm the deployer has lREACT on Lasna, and retry the Reactive deployment.

@@ -7,7 +7,7 @@ This runbook describes the minimum deployment order for the current hackathon wo
 1. Origin game contract
 2. Destination badge contract
 3. Reactive contract
-4. Destination reactive address backfill
+4. Destination authorized-RVM-ID backfill
 
 This document is intentionally narrow. It exists to prevent deployment-order mistakes while the project is still moving quickly.
 
@@ -56,6 +56,7 @@ Used by:
 - `DESTINATION_CONTRACT`
 - `CALLBACK_GAS_LIMIT`
 - `CALLBACK_PROXY`
+- `REACTIVE_INITIAL_FUNDING_WEI`
 - `RPC_URL`
 
 Used by:
@@ -103,21 +104,25 @@ Inputs:
 - `DESTINATION_CONTRACT`
 - `CALLBACK_GAS_LIMIT`
 - `CALLBACK_PROXY`
+- `REACTIVE_INITIAL_FUNDING_WEI`
 
 Output to record:
 - reactive contract address
 
 Why third:
 - It needs both origin and destination addresses already deployed.
+- For real Lasna deployment, fund the contract at deploy time so constructor-time subscription registration has an initial REACT balance.
 
 ### Step 4. Backfill Reactive Address Into Destination
 
 Call on `ProtoMonBadge`:
-- `setReactiveContract(reactiveContractAddress)`
+- `setAuthorizedRvmId(authorizedRvmId)`
 
 Why this step exists:
 - It removes the deployment cycle between destination and reactive.
-- Destination can now validate the `rvmId` source after the Reactive contract address is known.
+- Destination validates the callback source by `rvmId`.
+- The required `authorizedRvmId` is the Reactive-side callback identity, not the plain deployed contract address.
+- In practice, obtain it from Reactive address mapping after deployment.
 
 ## Address Recording
 
@@ -142,7 +147,7 @@ At minimum record:
 - origin deployment tx
 - destination deployment tx
 - reactive deployment tx
-- destination `setReactiveContract(...)` tx
+- destination `setAuthorizedRvmId(...)` tx
 - one successful game `playTurn(...)` tx
 - one Reactive callback / destination reward tx
 

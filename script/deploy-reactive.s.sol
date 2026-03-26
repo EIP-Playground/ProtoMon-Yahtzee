@@ -12,9 +12,10 @@ contract DeployReactive is Script {
         address destinationContract = vm.envAddress("DESTINATION_CONTRACT");
         uint64 callbackGasLimit = uint64(vm.envUint("CALLBACK_GAS_LIMIT"));
         address callbackProxy = vm.envAddress("CALLBACK_PROXY");
+        uint256 initialFundingWei = vm.envUint("REACTIVE_INITIAL_FUNDING_WEI");
 
         vm.startBroadcast();
-        new ProtoMonReactiveBadge(
+        new ProtoMonReactiveBadge{value: initialFundingWei}(
             originChainId,
             originContract,
             destinationChainId,
