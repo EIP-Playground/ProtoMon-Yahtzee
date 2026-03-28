@@ -60,8 +60,8 @@ export const ACTIVE_COMPANION_CONFIG: ActiveCompanionConfig = {
     en: "Panda Trainer",
   },
   companionName: {
-    "zh-CN": "Ignis Fox",
-    en: "Ignis Fox",
+    "zh-CN": "EMBERKIN",
+    en: "EMBERKIN",
   },
   companionHp: {
     current: 100,
@@ -96,14 +96,14 @@ export const BATTLE_SCENE_LAYOUT = {
   companion: { left: 19.6, top: 46.8, width: 12.9 },
   companionName: { left: 17.4, top: 38.6, width: 18.8 },
   companionHp: { left: 18.1, top: 42.6, width: 18.4 },
-  boss: { left: 53.4, top: 31.2, width: 19.8 },
+  boss: { left: 53.4, top: 30.2, width: 19.8 },
   bossName: { left: 49.4, top: 16.8, width: 24.8 },
   bossHp: { left: 50.1, top: 20.9, width: 24.1 },
   bossDamage: { left: 60.4, top: 27.2, width: 8.6 },
   passivePanel: { left: 2.6, top: 69.4, width: 27.4 },
-  tray: { left: 37.6, top: 61.8, width: 34.6 },
+  tray: { left: 37.6, top: 54.8, width: 34.6 },
   rollButton: { left: 44.2, top: 89.2, width: 18.4 },
-  rightPanel: { left: 78.3, top: 4.8, width: 24.2, height: 95.2 },
+  rightPanel: { left: 78.3, top: 1.8, width: 24.2, height: 95.2 },
 } satisfies Record<string, BattleScenePlacement>;
 
 export const BATTLE_PASSIVE_ITEMS: readonly PassiveItemConfig[] = [

@@ -854,7 +854,7 @@ a {
 }
 
 html[data-locale="zh-CN"] .battle-command-title {
-  font-size: 1.08rem;
+  font-size: 0.9rem;
   letter-spacing: 0.06em;
 }
 
@@ -871,8 +871,8 @@ html[data-locale="zh-CN"] .battle-element-value {
 }
 
 html[data-locale="zh-CN"] .battle-spell-label {
-  font-size: 0.92rem;
-  line-height: 1.22;
+  font-size: 1rem;
+  line-height: 0.5;
 }
 
 html[data-locale="zh-CN"] .battle-spell-damage {
@@ -884,11 +884,11 @@ html[data-locale="zh-CN"] .battle-used-badge {
 }
 
 html[data-locale="zh-CN"] .battle-row-tooltip-title {
-  font-size: 0.72rem;
+  font-size: 1rem;
 }
 
 html[data-locale="zh-CN"] .battle-row-tooltip-body {
-  font-size: 0.66rem;
+  font-size: 0.9rem;
   line-height: 1.62;
 }
 

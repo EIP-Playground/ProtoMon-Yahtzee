@@ -324,7 +324,7 @@ export function ScoreBoard({
       <section className="battle-command-block">
         <p className="battle-command-title">ELEMENTS</p>
 
-        <div className="mt-2 space-y-1.5">
+        <div className="mt-[2px] space-y-1">
           {upperRows.map((row) => {
             const canSelect = !row.used && !state.finished && !isCasting && !!state.dice;
             const rowHoldState = holdState?.slotId === row.slot.id ? holdState : null;
@@ -459,10 +459,10 @@ export function ScoreBoard({
         </div>
       </section>
 
-      <section className="battle-command-block mt-3 min-h-0 flex-1">
+      <section className="battle-command-block mt-1 min-h-0 flex-1">
         <p className="battle-command-title">SPELLS</p>
 
-        <div className="mt-2 space-y-1.5">
+        <div className="mt-[2px] space-y-1">
           {skillRows.map((row) => {
             const canSelect = !row.used && !state.finished && !isCasting && !!state.dice;
             const rowHoldState = holdState?.slotId === row.slot.id ? holdState : null;
