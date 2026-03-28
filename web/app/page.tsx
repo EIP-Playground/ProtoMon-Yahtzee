@@ -149,7 +149,7 @@ export default function Home() {
         errorMessage={errorMessage}
         isBusy={isCreating || isNavigating}
         onStartBattle={handleStartBattle}
-        heroTopControls={<HomeWalletHud />}
+        heroTopControls={isCreating || isNavigating ? null : <HomeWalletHud />}
       />
       <BackToTopButton visible={showBackToTop} />
     </main>

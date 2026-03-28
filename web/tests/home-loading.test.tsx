@@ -100,6 +100,7 @@ describe("Home loading flows", () => {
     });
 
     expect(screen.getByTestId("loading-pending")).toBeInTheDocument();
+    expect(screen.queryByTestId("home-controls")).not.toBeInTheDocument();
     expect(screen.getByTestId("loading-duration")).toHaveTextContent(
       String(LOADING_MIN_CREATE_DURATION_MS),
     );

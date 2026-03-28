@@ -1,10 +1,12 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LoadingBar } from "@/components/loading/LoadingBar";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import {
   getPendingRevealProgress,
   LOADING_BAR_WIDTH,
@@ -12,6 +14,14 @@ import {
 } from "@/lib/ui/loading";
 
 const PARTICLE_COLORS = ["#FFD700", "#4ADE80", "#38BDF8", "#F97316", "#A16207", "#93C5FD"];
+const STATIC_DICE_FACES = [
+  "/dice/dice-fire.png",
+  "/dice/dice-water.png",
+  "/dice/dice-wood.png",
+  "/dice/dice-wind.png",
+  "/dice/dice-earth.png",
+  "/dice/dice-gold.png",
+] as const;
 
 type FloatingParticle = {
   id: number;
@@ -51,6 +61,10 @@ function createParticles(): FloatingParticle[] {
   }));
 }
 
+function pickStaticDiceFace() {
+  return STATIC_DICE_FACES[Math.floor(Math.random() * STATIC_DICE_FACES.length)];
+}
+
 export function LoadingPage({
   mode = "timed",
   duration = 3200,
@@ -67,9 +81,11 @@ export function LoadingPage({
   const [messageIndex, setMessageIndex] = useState(0);
   const [fadeMessage, setFadeMessage] = useState(true);
   const [done, setDone] = useState(false);
+  const [backgroundReady, setBackgroundReady] = useState(false);
   const progressRef = useRef(0);
   const completeTimeoutRef = useRef<number | null>(null);
   const particles = useMemo(() => createParticles(), []);
+  const diceFace = useMemo(() => pickStaticDiceFace(), []);
   const resolvedTitle = title ?? messages.loading.defaultTitle;
   const resolvedSubtitle = subtitle ?? messages.loading.defaultSubtitle;
   const resolvedLoadingLabel = loadingLabel ?? messages.loading.defaultLoadingLabel;
@@ -90,8 +106,8 @@ export function LoadingPage({
       window.setTimeout(() => {
         setMessageIndex((index) => (index + 1) % messageList.length);
         setFadeMessage(true);
-      }, 300);
-    }, Math.max(700, Math.round(duration / messageList.length)));
+      }, 450);
+    }, Math.max(1600, Math.round((duration * 1.45) / messageList.length)));
 
     return () => window.clearInterval(interval);
   }, [duration, messageList]);
@@ -210,26 +226,48 @@ export function LoadingPage({
   }, [mode, onComplete, ready]);
 
   return (
-    <div
-      className="loading-shell fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
-      style={{
-        background: "linear-gradient(180deg, #0a0e1a 0%, #0d1b2a 50%, #060d18 100%)",
-      }}
-    >
-      <div className="absolute right-5 top-5 z-20">
-        <LanguageSwitcher compact variant="pixel" />
+    <div className="loading-shell fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: "linear-gradient(180deg, #0a0e1a 0%, #0d1b2a 50%, #060d18 100%)",
+        }}
+      />
+
+      <div
+        data-testid="loading-background-layer"
+        className="pointer-events-none absolute inset-0 transition-opacity duration-700"
+        style={{ opacity: backgroundReady ? 1 : 0 }}
+      >
+        <Image
+          src="/protomon-loading/loading-bg.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          data-testid="loading-background-image"
+          className="object-cover object-center"
+          style={{ imageRendering: "pixelated" }}
+          onLoad={() => setBackgroundReady(true)}
+        />
       </div>
 
       <div
-        className="pointer-events-none absolute inset-0 opacity-10"
+        data-testid="loading-network-layer"
+        className="pointer-events-none absolute inset-0 transition-opacity duration-700"
         style={{
+          opacity: backgroundReady ? 0 : 0.12,
           backgroundImage:
             "linear-gradient(rgba(0,200,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,255,0.3) 1px, transparent 1px)",
           backgroundSize: "32px 32px",
         }}
       />
 
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        data-testid="loading-particles-layer"
+        className="pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-700"
+        style={{ opacity: backgroundReady ? 0.42 : 0.9 }}
+      >
         {particles.map((particle) => (
           <div
             key={particle.id}
@@ -244,9 +282,7 @@ export function LoadingPage({
           >
             <div
               className="flex h-full w-full items-center justify-center"
-              style={{
-                transform: `rotate(${particle.rotation}deg)`,
-              }}
+              style={{ transform: `rotate(${particle.rotation}deg)` }}
             >
               <div
                 className="h-full w-full"
@@ -263,8 +299,24 @@ export function LoadingPage({
         ))}
       </div>
 
-      <div className="relative z-10 flex w-full max-w-lg flex-col items-center gap-6 px-6">
-        <div className="mb-2 text-center">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(6,18,34,0.08) 28%, rgba(7,14,26,0.2) 58%, rgba(7,12,22,0.52) 100%)",
+        }}
+      />
+
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%]"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(6,13,24,0) 0%, rgba(6,13,24,0.22) 18%, rgba(6,13,24,0.7) 100%)",
+        }}
+      />
+
+      <div className="relative z-10 flex w-full max-w-[44rem] flex-col items-center gap-5 px-5 pb-[6vh] pt-[10vh] sm:gap-6 sm:px-6 sm:pb-[7vh]">
+        <div className="mb-1 text-center">
           <h1
             className="mb-2 text-3xl tracking-[0.08em] uppercase sm:text-4xl"
             style={{
@@ -277,18 +329,41 @@ export function LoadingPage({
             {resolvedTitle}
           </h1>
           <p
+            data-testid="loading-subtitle"
             className="text-sm tracking-[0.08em] sm:text-base"
             style={{
               fontFamily: "var(--font-pixel-ui), monospace",
-              color: "#00E5FF",
-              textShadow: "0 0 10px rgba(0,229,255,0.5)",
+              color: backgroundReady ? "#B46CFF" : "#00E5FF",
+              textShadow: backgroundReady
+                ? "0 0 10px rgba(180,108,255,0.6), 0 0 18px rgba(105,42,255,0.36)"
+                : "0 0 10px rgba(0,229,255,0.5)",
+              transition: "color 0.4s ease, text-shadow 0.4s ease",
             }}
           >
             {resolvedSubtitle}
           </p>
         </div>
 
-        <div className="flex w-full flex-col items-center gap-3">
+        <div className="flex w-full flex-col items-center gap-4 sm:gap-5">
+          <div
+            className="pointer-events-none flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <img
+              data-testid="loading-dice-image"
+              src={diceFace}
+              alt=""
+              draggable={false}
+              className="h-auto w-[clamp(9.5rem,28vw,15.5rem)]"
+              style={{
+                imageRendering: "pixelated",
+                animation: "card-float 3.8s ease-in-out infinite",
+                filter:
+                  "drop-shadow(0 0 1.2rem rgba(255,219,111,0.34)) drop-shadow(0 0 2rem rgba(95,223,255,0.24))",
+              }}
+            />
+          </div>
+
           <LoadingBar progress={progress} width={LOADING_BAR_WIDTH} />
 
           <div className="flex w-full items-center justify-between px-1">
@@ -332,7 +407,7 @@ export function LoadingPage({
         </div>
 
         <p
-          className="mt-4 text-sm opacity-40 sm:text-base"
+          className="mt-2 text-sm opacity-40 sm:text-base"
           style={{
             fontFamily: "var(--font-pixel-ui), monospace",
             color: "#ffffff",
