@@ -21,7 +21,7 @@ function getDiceFaceSrc(value: number) {
     return BATTLE_ELEMENT_VISUALS[value as 1 | 2 | 3 | 4 | 5 | 6].diceFaceSrc;
   }
 
-  return "/dice/dice-six-sides.png";
+  return BATTLE_ELEMENT_VISUALS[1].diceFaceSrc;
 }
 
 function createPreviewDiceFaces(): DiceArray {
@@ -149,7 +149,7 @@ export function DiceBoard({
           return (
             <button
               type="button"
-              key={`${index}-${value}-${locked[index] ? "locked" : "open"}`}
+              key={index}
               aria-label={`${messages.battle.dice.die(index)} ${
                 locked[index] ? messages.battle.dice.locked : messages.battle.dice.unlocked
               }`}
