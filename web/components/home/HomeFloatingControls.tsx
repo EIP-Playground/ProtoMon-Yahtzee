@@ -37,13 +37,23 @@ export function HomeFloatingControls() {
     <nav
       ref={navRef}
       aria-label="home top controls"
-      className="pixel-frost-nav pointer-events-auto fixed inset-x-0 top-0 z-[60] flex w-full items-center justify-end gap-2 px-3 py-3 md:gap-3 md:px-5 md:py-3.5"
+      className="pixel-frost-nav pointer-events-auto fixed inset-x-0 top-0 z-[60] flex w-full items-center gap-2 px-3 py-3 md:gap-3 md:px-5 md:py-3.5"
     >
-      <div className="flex w-full items-center justify-end gap-2 md:mx-auto md:max-w-[1600px] md:gap-3">
-        <div className="shrink-0">
-          <PixelWalletButton />
+      <div className="flex w-full items-center justify-between gap-3 md:mx-auto md:max-w-[1600px]">
+        <div className="pointer-events-none flex min-w-0 items-center">
+          <img
+            src="/protomon-logo.png"
+            alt="ProtoMon"
+            className="h-9 w-auto object-contain md:h-10"
+            draggable="false"
+          />
         </div>
-        <LanguageSwitcher compact variant="pixel" />
+        <div className="flex shrink-0 items-center gap-2 md:gap-3">
+          <div className="shrink-0">
+            <PixelWalletButton />
+          </div>
+          <LanguageSwitcher compact variant="pixel" />
+        </div>
       </div>
     </nav>
   );
