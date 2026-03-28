@@ -174,6 +174,51 @@ Original prompt: PLEASE IMPLEMENT THIS PLAN:
 - `rtk pnpm lint` passed.
 - `rtk pnpm build` passed.
 
+## 2026-03-27 Homepage Button Interaction Pass
+
+- Moved the language switcher to the far-right side of the fixed homepage nav so the top bar reads `wallet -> language`.
+- Tightened the homepage wallet controls:
+  - desktop network/account buttons now use narrower widths, smaller icons, and smaller text
+  - mobile wallet button now uses a smaller square footprint
+  - nav gap was reduced so the right-aligned controls occupy less horizontal space
+- Standardized homepage button interaction states:
+  - hover now visibly changes brightness, shadow, and lift
+  - active now has a clearer pixel-style press-down effect
+  - focus-visible now gets a visible outline for keyboard access
+- Unified the button interaction language across hero CTA, nav controls, footer stone buttons, and back-to-top.
+- Switched the remaining homepage icons to `react-icons` and removed the `lucide-react` dependency.
+
+## Validation
+
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+
+## Notes
+
+- The `develop-web-game` Playwright loop still cannot run here because the local runtime does not provide the `playwright` package.
+
+## 2026-03-27 Loading Page Visual Pass
+
+- Replaced the old gradient/grid/particle loading-screen treatment with a full-screen image-backed scene using `web/public/protomon-loading/loading-bg.webp`.
+- Added a minimal readability overlay:
+  - light atmospheric top overlay
+  - darker bottom overlay behind the progress cluster
+- Inserted the animated dice asset `web/public/dice/rolling-dice.webp` directly above the loading bar as the new focal element.
+- Preserved existing loading behavior:
+  - message rotation
+  - timed-mode completion
+  - pending-mode reveal cap and ready-to-100 transition
+  - shared `LoadingPage` usage for both entry loading and create-game loading
+- Kept the loading language switcher in place.
+
+## Validation
+
+- `rtk pnpm lint` passed.
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+
+## Notes
+
+- The `develop-web-game` Playwright loop remains blocked because `playwright` is not available in the local runtime.
+
 ## 2026-03-27 Homepage Nav + Hero Mock Pass 2
 
 - Reworked the homepage top bar into a full-width fixed frosted-glass nav.
@@ -391,3 +436,220 @@ Original prompt: PLEASE IMPLEMENT THIS PLAN:
 
 - This pass still keeps the wallet integration homepage-only; battle flow remains demo-address based.
 - The current homepage is closer to the mock, but not yet pixel-perfect. The remaining differences are mainly fine-grained spacing, asset scale, and footer/control polish.
+
+## 2026-03-27 Loading Page Background Transition Pass
+
+- Restored a lightweight fallback loading visual layer so the loading screen no longer waits on the full background image before showing structure.
+- `LoadingPage` now enters with:
+  - a dark base backdrop
+  - the old network/grid layer
+  - the existing floating particle layer
+- Added a local `backgroundReady` state driven by the loading background image load event.
+- Updated loading background behavior so `/protomon-loading/loading-bg.webp` now fades in only after the image is ready.
+- The network/grid layer now fades out after the real background becomes ready instead of disappearing immediately.
+- The particle layer now persists after the background swap at reduced opacity so the transition keeps some ambient motion without fighting the final scene.
+- Kept the animated dice asset and all loading progress/timing behavior unchanged.
+- Added a dedicated component test for the fallback-to-final background transition in `web/tests/loading-page.test.tsx`.
+
+## Validation
+
+- `rtk pnpm vitest run tests/loading-page.test.tsx` passed.
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+
+## Notes
+
+- The `develop-web-game` Playwright loop is still blocked because the local runtime does not provide the `playwright` package.
+
+## 2026-03-28 Battle HUD + Board Fit Cleanup Pass
+
+- Fixed the battle HUD language switcher layering so the dropdown menu can open above the battle canvas:
+  - `LanguageSwitcher` pixel dropdown now renders with an explicit high `z-index`
+  - `BattleHudControls` and the battle header now keep `overflow-visible`
+- Added a red battle-exit power button to the left side of the HUD using `react-icons/io5` `IoPowerSharp`.
+  - Exit flow now asks for confirmation before routing back to `/`
+- Enlarged the visible battle board by:
+  - reducing inner viewport padding
+  - slightly lowering the board base height used for scale-to-fit
+  - widening and raising the right command panel in the battle scene layout config
+- Reworked battle scene anchors:
+  - mirrored the trainer sprite horizontally
+  - removed background name plates
+  - names are now plain outlined white pixel text
+  - HP bars are anchored above the companion and boss sprites
+  - HP numbers now render centered inside each bar
+- Updated the boss display name to match the asset direction:
+  - `zh-CN`: `哥布林机巧萨满`
+  - `en`: `Goblin Gear Shaman`
+- Split battle dice faces from right-panel element icons:
+  - tray dice now use `/dice/dice-*.png`
+  - right-panel element rows still use `/elements/icon-*.png`
+- Reworked the dice tray presentation:
+  - removed the separate roll-count badge
+  - ROLL button label now embeds remaining throws as `ROLL(x/3)`
+  - tray dice are larger, centered on the wood tray, and no longer sit inside framed boxes
+- Tightened the right panel interaction model:
+  - icon boxes removed; element and skill images now render directly with `#E1B800` borders
+  - selected rows still expand and animate
+  - inline CAST now slides in from the right and overlaps the row content
+  - `Used` is suppressed while the selected row is still casting
+- Added pixel-rounded clip-path styling to battle panels, rows, HP bars, passive cells, and hover tooltips.
+- Updated battle tests for:
+  - new `ROLL(x/3)` button labels
+  - updated boss name
+  - exit-button confirm flow
+
+## Validation
+
+- `cd web && rtk pnpm vitest run tests/battle-client.test.tsx tests/game-logic.test.ts` passed.
+- `cd web && rtk pnpm lint` passed with only existing `@next/next/no-img-element` warnings.
+
+## Notes
+
+- `cd web && rtk pnpm build` is currently blocked in this environment by `next/font` fetching Google Fonts (`Orbitron`, `Press Start 2P`) from the network. The latest failure was environmental, not a local TypeScript or test failure.
+
+## 2026-03-28 Loading Page Visual Pass 2
+
+- Removed the remaining loading-page top control so the loading screen no longer shows the language switcher or any top-right nav affordance.
+- Replaced the animated loading dice asset with a static dice face chosen from the six existing element dice images under `web/public/dice/`.
+- Kept the dice decorative and centered above the loading bar, but switched its motion to a simple float animation instead of rotation.
+- Added background-aware subtitle styling so the loading subtitle turns purple after the final loading background image finishes loading.
+- Slowed the rotating loading message cadence by increasing the message interval and lengthening the fade swap timing.
+- Preserved all existing loading behavior:
+  - timed-mode completion
+  - pending-mode reveal cap and ready-to-100 transition
+  - fallback network/particles to final background transition
+
+## Validation
+
+- `rtk pnpm vitest run tests/loading-page.test.tsx` passed.
+- `rtk pnpm vitest run tests/home-loading.test.tsx tests/home-scroll.test.tsx tests/locale-provider.test.tsx` passed.
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+
+## Notes
+
+- The loading dice face is randomized once per loading-screen mount and remains fixed for that loading session.
+- The `develop-web-game` Playwright loop is still blocked because the local runtime does not provide the `playwright` package.
+
+## 2026-03-28 Battle UI Phase 1.5 Single-Screen Board
+
+- Reworked `web/components/battle/BattleClient.tsx` into a fixed-height `100dvh` shell with a compact top HUD and a centered scene board that scales the full battle layout as one desktop-first surface.
+- Switched the battle route to use `web/public/battle/battle-bg.webp` as the unified scene background instead of separate stacked battle sections.
+- Added a compact battle HUD that reuses the homepage wallet and language controls while surfacing only:
+  - current turn
+  - current boss indicator
+  - sync/cloud status badge derived from `syncStatus`
+  - used-slot count
+- Removed the large descriptive battle header and removed the old primary developer/debug panel from the main battle UI.
+- Rebuilt the battle stage into one in-scene composition:
+  - trainer art
+  - active ProtoMon art
+  - boss goblin art
+  - compact HP/name overlays only
+- Rebuilt the passive item panel as an in-scene bottom-left relic grid with names under icons and basic hover tips for descriptions.
+- Reworked the dice tray into an integrated in-scene wood board with:
+  - existing backend-backed `ROLL` / `REROLL`
+  - existing lock behavior
+  - compact status copy
+  - lock icon overlays instead of extra descriptive labels
+- Rebuilt the right panel into a pixel-framed board with:
+  - upper `ELEMENTS` rows mapped to the original 6 upper slots
+  - lower `EIP SPELLS` rows mapped to the original 7 lower slots
+  - row selection state driven by `selectedSlotId`
+  - selected rows expanding vertically and revealing an inline `CAST` button
+  - removal of the previous standalone bottom `CAST` button
+- Kept current gameplay rules and backend flow intact:
+  - roll / reroll still call the backend routes
+  - cast still uses the existing local scoring and `applyLocalCast`
+  - round advance still uses `/api/game/advance`
+  - sessionStorage hydration still restores battle state
+- Added a local `castingSlotId` UI hold so the inline cast button remains visible in the selected row during cast sync, which preserves the `正在施法` / `Casting…` feedback after local cast applies.
+- Updated `web/tests/battle-client.test.tsx` to match the new HUD and inline cast flow while keeping the existing roll/reroll/cast/hydration regression coverage.
+
+## Validation
+
+- `cd web && rtk pnpm vitest run tests/battle-client.test.tsx tests/game-logic.test.ts` passed.
+- `cd web && rtk pnpm lint` passed with `@next/next/no-img-element` warnings only.
+- `cd web && rtk pnpm build` passed.
+
+## Notes
+
+- The battle board is now desktop-first single-screen. Narrow viewports scale the full board down instead of switching to a separate mobile layout.
+- Passive-item tooltips are intentionally minimal in this pass; broader tooltip coverage is still deferred.
+- The `develop-web-game` Playwright screenshot loop is still blocked locally because `playwright` is not installed in the current runtime.
+
+## 2026-03-28 Public Asset Naming Cleanup
+
+- Normalized the remaining non-uniform `web/public` asset names to lowercase ASCII kebab-case.
+- Removed stray `.DS_Store` files from `web/public` subtrees.
+- Fixed the dice asset typo:
+  - `dice-glod.png` -> `dice-gold.png`
+- Renamed battle/passive/skill assets from mixed Chinese filenames to consistent English kebab-case names, including:
+  - passive relic icons -> `passive-*.png`
+  - skill icons -> `skill-*.png`
+  - `觉醒能量-icon.png` -> `awakening-energy-icon.png`
+- Updated all code references that used the renamed files in:
+  - `web/lib/battle/config.ts`
+  - `web/components/loading/LoadingPage.tsx`
+  - `web/tests/loading-page.test.tsx`
+
+## Validation
+
+- `cd web && rtk pnpm vitest run tests/loading-page.test.tsx tests/battle-client.test.tsx tests/game-logic.test.ts` passed.
+- `cd web && rtk pnpm lint` passed with existing `@next/next/no-img-element` warnings only.
+- `cd web && rtk pnpm build` passed.
+
+## 2026-03-28 Battle Mock Rebuild on `battle-bg-full.webp`
+
+- Rebuilt the battle scene around `web/public/battle/battle-bg-full.webp` as the sole full-screen battle background.
+- Removed the previous boxed battle wrapper and kept the gameplay UI as a transparent overlay scaled against a `1200x896` mock-aligned board.
+- Reworked the battle HUD to reuse the homepage frosted nav style and changed the content order to:
+  - left: `BOSS 01 · Goblin Hacker`, slot progress
+  - center: dynamic `TURN`, dynamic sync badge
+  - right: shared wallet + language controls
+- Added config-driven battle scene placement data in `web/lib/battle/config.ts` for trainer, ProtoMon, boss, passive items, tray, roll area, and right panel.
+- Extended the active companion config with hover-only ProtoMon destiny lines and added a hover tooltip on the ProtoMon art.
+- Rebuilt the right command panel to match the new mock direction:
+  - 6 element rows in fixed `1 -> 6` order
+  - reward / awakening row placed directly beneath them
+  - spell rows with icon + bracketed slot label + damage
+  - selected rows expand and reveal inline `CAST`
+  - used rows show `Used`
+- Added local battle feedback effects without changing battle logic:
+  - element-row number / bar pulse on cast
+  - spell-row damage popup on cast
+  - boss-side floating red damage number
+- Simplified the passive items area to a 2x3 icon grid with the sixth slot empty and hover tooltips for item details.
+- Reworked the dice tray to remove the verbose top status block and keep only the tray, element-face dice, lock states, roll-count badge, and `ROLL` button.
+- Preserved pre-roll local visual dice faces so the initial board no longer shows the generic six-sided placeholder cube.
+
+## Validation
+
+- `cd web && rtk pnpm vitest run tests/battle-client.test.tsx tests/game-logic.test.ts` passed.
+- `cd web && rtk pnpm lint` passed with only existing `@next/next/no-img-element` warnings.
+- `cd web && rtk pnpm build` passed.
+
+## Notes
+
+- The battle scene is now desktop-first and scales to fit the viewport; no separate mobile battle layout was introduced in this pass.
+- `playwright` is still not available in the local runtime, so this pass was validated with Vitest + lint + build only.
+
+## 2026-03-28 Battle Hold-to-Cast Fix + Panel Density Pass
+
+- Shortened battle hold-to-cast from `3000ms` to `1500ms`.
+- Replaced the old interval-only hold trigger with a deterministic hold model:
+  - one hold timeout decides when the cast fires
+  - UI progress still animates while holding
+  - releasing early eases the fill overlay back to zero
+- Fixed the regression where a fully filled hold bar could fail to actually release the slot.
+- Added left-side hover tooltips for all 13 score slots with localized one-line hints in `web/lib/i18n/messages.ts`.
+- Kept the upper bonus reward row non-castable and added a persistent gradient progress bar tied to `upperSubtotalLocal / 63`.
+- Tightened right-panel spacing while increasing lower spell-row typography so all rows remain visible and easier to read.
+
+## Validation
+
+- `cd web && rtk pnpm vitest run tests/battle-client.test.tsx tests/game-logic.test.ts` passed.
+- `cd web && rtk pnpm lint` passed with only existing `@next/next/no-img-element` warnings.
+- `cd web && rtk pnpm build` could not be revalidated in this environment because a stale `next build` process lock remained and escalation to inspect/clear it was not approved.
