@@ -34,7 +34,7 @@ type ScoreBoardProps = {
   onCastSlot: (slotId: number) => void;
 };
 
-const HOLD_DURATION_MS = 1500;
+const HOLD_DURATION_MS = 1000;
 const HOLD_PROGRESS_TICK_MS = 16;
 const HOLD_REVERT_MS = 280;
 
@@ -53,6 +53,7 @@ type RowTooltipState = {
   meta: (typeof BATTLE_SCORE_TOOLTIP_META)[keyof typeof BATTLE_SCORE_TOOLTIP_META];
   anchorLeft: number;
   anchorTop: number;
+  placement: "above" | "below";
 };
 
 function spellLabel(raw: string, locale: "zh-CN" | "en") {
@@ -324,8 +325,13 @@ export function ScoreBoard({
   ) {
     const rect = target.getBoundingClientRect();
     const tooltipWidth = 272;
-    const gap = 14;
-    const left = Math.max(16, Math.min(rect.right + gap, window.innerWidth - tooltipWidth - 16));
+    const edgePadding = 16;
+    const gap = 10;
+    const left = Math.max(
+      edgePadding,
+      Math.min(rect.right - tooltipWidth, window.innerWidth - tooltipWidth - edgePadding),
+    );
+    const prefersBelow = rect.top < 164;
 
     setRowTooltip({
       key,
@@ -333,7 +339,8 @@ export function ScoreBoard({
       content,
       meta,
       anchorLeft: left,
-      anchorTop: rect.top + rect.height / 2,
+      anchorTop: prefersBelow ? rect.bottom + gap : rect.top - gap,
+      placement: prefersBelow ? "below" : "above",
     });
   }
 
@@ -602,7 +609,7 @@ export function ScoreBoard({
               style={{
                 top: `${rowTooltip.anchorTop}px`,
                 left: `${rowTooltip.anchorLeft}px`,
-                transform: "translateY(-50%)",
+                transform: rowTooltip.placement === "above" ? "translateY(-100%)" : "none",
               }}
             >
               <p className="battle-row-tooltip-title pixel-font">{rowTooltip.title}</p>
