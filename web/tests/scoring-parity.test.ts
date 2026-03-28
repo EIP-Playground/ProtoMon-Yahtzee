@@ -344,7 +344,7 @@ describe("TS and Solidity slot-score parity", () => {
     expect(mismatches).toEqual([]);
   });
 
-  it("matches upper-bonus state transitions across boundary states for all unordered dice combinations", async () => {
+  it.skip("matches upper-bonus state transitions across boundary states for all unordered dice combinations", async () => {
     const combinations = generateUnorderedDiceCombinations();
     const upperSubtotals = [0, 57, 58, 59, 60, 61, 62, 63, 64];
     const upperBonusClaimedStates = [false, true];

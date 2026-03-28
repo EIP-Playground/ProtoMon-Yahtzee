@@ -8,6 +8,7 @@ import { BackToTopButton } from "@/components/home/BackToTopButton";
 import { HomeLanding } from "@/components/home/HomeLanding";
 import { LoadingPage } from "@/components/loading/LoadingPage";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { useSmartAccount } from "@/components/providers/SmartAccountProvider";
 import {
   getConnectedSenderAddress,
   startGameOnChain,
@@ -32,6 +33,7 @@ function wait(ms: number) {
 export default function Home() {
   const router = useRouter();
   const { messages } = useLocale();
+  const { isAAEnabled, setupSmartAccount, smartAccountClient } = useSmartAccount();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNavigating, startTransition] = useTransition();
   const [isCreating, setIsCreating] = useState(false);
@@ -83,22 +85,62 @@ export default function Home() {
     setPendingGameId(null);
 
     try {
-      const sender = await getConnectedSenderAddress();
+      // Get the user's real EOA address (for rewardRecipient and fallback sender)
+      const eoaAddress = await getConnectedSenderAddress();
+
+      let player = eoaAddress;
+      let aaClient: unknown = undefined;
+
+      if (isAAEnabled) {
+        // AA mode: create ephemeral signer + Safe Smart Account
+        const safeAddress = await setupSmartAccount();
+        player = safeAddress;
+        aaClient = smartAccountClient;
+
+        // Re-read the client since setupSmartAccount triggers a state update
+        // and the closure still holds the old reference. Dynamic import fallback:
+        if (!aaClient) {
+          const { getOrCreateEphemeralKey, setupGaslessAccount } =
+            await import("@/lib/aa/smartAccount");
+          const privKey = getOrCreateEphemeralKey();
+          const result = await setupGaslessAccount(privKey);
+          player = result.safeAddress;
+          aaClient = result.smartAccountClient;
+        }
+      }
+
       const session = await createBattleSession({
-        player: sender,
-        rewardRecipient: sender,
+        player,
+        rewardRecipient: eoaAddress,
         bossId: 1,
-      });
-      const { txHash } = await startGameOnChain({
-        gameId: session.gameId,
-        rewardRecipient: session.rewardRecipient,
-        bossId: session.bossId,
       });
 
       setShowCreateLoading(true);
       const battleAssetsPromise = preloadBattleAssets();
-      const chainStartedPromise = waitForGameStarted(txHash);
       const minLoadingPromise = wait(LOADING_MIN_CREATE_DURATION_MS);
+
+      const { txHash, isAA } = await startGameOnChain(
+        {
+          gameId: session.gameId,
+          rewardRecipient: session.rewardRecipient,
+          bossId: session.bossId,
+        },
+        aaClient,
+      );
+
+      // If AA is enabled, bind the ephemeral key to this gameId for battle page restore
+      if (isAAEnabled) {
+        try {
+          const { getOrCreateEphemeralKey, bindEphemeralKeyToGame } =
+            await import("@/lib/aa/smartAccount");
+          const privKey = getOrCreateEphemeralKey();
+          bindEphemeralKeyToGame(session.gameId, privKey);
+        } catch {
+          // Non-critical: battle page can still work if restore fails
+        }
+      }
+
+      const chainStartedPromise = waitForGameStarted(txHash, isAA);
 
       await Promise.all([battleAssetsPromise, chainStartedPromise, minLoadingPromise]);
 

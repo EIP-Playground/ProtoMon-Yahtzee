@@ -1,6 +1,7 @@
 import {
   createPublicClient,
   decodeEventLog,
+  encodeFunctionData,
   getAddress,
   http,
   isAddressEqual,
@@ -151,7 +152,14 @@ function toContractDealerProof(proof: DealerProof) {
   };
 }
 
-export async function startGameOnChain(input: StartGameInput) {
+export async function startGameOnChain(
+  input: StartGameInput,
+  smartAccountClient?: unknown,
+) {
+  if (smartAccountClient) {
+    return startGameViaSmartAccount(input, smartAccountClient);
+  }
+
   const sender = await getConnectedSenderAddress();
   await requireWalletClient();
   const { writeContract, walletConfig, walletChain } = await getWagmiContext();
@@ -167,10 +175,43 @@ export async function startGameOnChain(input: StartGameInput) {
 
   return {
     txHash: hash,
+    isAA: false,
   };
 }
 
-export async function waitForGameStarted(txHash: HexString) {
+async function startGameViaSmartAccount(
+  input: StartGameInput,
+  smartAccountClient: unknown,
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const client = smartAccountClient as any;
+  const data = encodeFunctionData({
+    abi: protoMonGameAbi,
+    functionName: "startGame",
+    args: [input.gameId, input.rewardRecipient, input.bossId],
+  });
+
+  const txHash = await client.sendUserOperation({
+    calls: [{
+      to: getProtoMonGameAddress(),
+      data,
+      value: BigInt(0),
+    }],
+  });
+
+  return {
+    txHash: txHash as HexString,
+    isAA: true,
+  };
+}
+
+export async function waitForGameStarted(txHashOrUserOpHash: HexString, isAA?: boolean) {
+  let txHash = txHashOrUserOpHash;
+  if (isAA) {
+    const { waitForAAUserOpTxHash } = await import("@/lib/aa/smartAccount");
+    txHash = await waitForAAUserOpTxHash(txHashOrUserOpHash);
+  }
+
   const publicClient = await getRequiredPublicClient();
   const { waitForTransactionReceipt, walletConfig } = await getWagmiContext();
   const receipt = await waitForTransactionReceipt(walletConfig, {
@@ -244,11 +285,18 @@ export async function waitForGameStarted(txHash: HexString) {
   throw new Error("GameStarted event was not found in the transaction receipt.");
 }
 
-export async function sendCastTurnUserOp(input: {
-  gameId: HexString;
-  slotId: number;
-  proof: DealerProof;
-}) {
+export async function sendCastTurnUserOp(
+  input: {
+    gameId: HexString;
+    slotId: number;
+    proof: DealerProof;
+  },
+  smartAccountClient?: unknown,
+) {
+  if (smartAccountClient) {
+    return sendPlayTurnViaSmartAccount(input, smartAccountClient);
+  }
+
   const sender = await getConnectedSenderAddress();
   await requireWalletClient();
   const { writeContract, walletConfig, walletChain } = await getWagmiContext();
@@ -268,12 +316,50 @@ export async function sendCastTurnUserOp(input: {
 
   return {
     txHash: hash,
+    isAA: false,
   };
 }
 
-export async function waitForTurnPlayed(txHash: `0x${string}`) {
+async function sendPlayTurnViaSmartAccount(
+  input: {
+    gameId: HexString;
+    slotId: number;
+    proof: DealerProof;
+  },
+  smartAccountClient: unknown,
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const client = smartAccountClient as any;
+  const data = encodeFunctionData({
+    abi: protoMonGameAbi,
+    functionName: "playTurn",
+    args: [input.gameId, input.slotId, toContractDealerProof(input.proof)],
+  });
+
+  const txHash = await client.sendUserOperation({
+    calls: [{
+      to: getProtoMonGameAddress(),
+      data,
+      value: BigInt(0),
+    }],
+  });
+
+  return {
+    txHash: txHash as HexString,
+    isAA: true,
+  };
+}
+
+export async function waitForTurnPlayed(txHashOrUserOpHash: HexString, isAA?: boolean) {
+  let txHash = txHashOrUserOpHash;
+  if (isAA) {
+    const { waitForAAUserOpTxHash } = await import("@/lib/aa/smartAccount");
+    txHash = await waitForAAUserOpTxHash(txHashOrUserOpHash);
+  }
+
   const publicClient = await getRequiredPublicClient();
   const { waitForTransactionReceipt, walletConfig } = await getWagmiContext();
+
   const receipt = await waitForTransactionReceipt(walletConfig, {
     hash: txHash,
   });

@@ -75,6 +75,7 @@ export function ScoreBoard({
   const { locale, messages } = useLocale();
   const [holdState, setHoldState] = useState<HoldState | null>(null);
   const [rowTooltip, setRowTooltip] = useState<RowTooltipState | null>(null);
+  const [rejectFx, setRejectFx] = useState<{ slotId: number; key: number } | null>(null);
   const holdIntervalRef = useRef<number | null>(null);
   const holdTimeoutRef = useRef<number | null>(null);
   const revertIntervalRef = useRef<number | null>(null);
@@ -152,7 +153,12 @@ export function ScoreBoard({
   }
 
   function beginHold(slotId: number) {
-    if (!state.dice || state.usedSlots[slotId] || state.finished || isCasting) {
+    if (!state.dice || state.usedSlots[slotId] || state.finished) {
+      return;
+    }
+
+    if (isCasting) {
+      setRejectFx({ slotId, key: Date.now() });
       return;
     }
 
@@ -249,6 +255,12 @@ export function ScoreBoard({
       window.clearTimeout(timeoutId);
     };
   }, [castingSlotId, holdState, isCasting, state.usedSlots]);
+
+  useEffect(() => {
+    if (!rejectFx) return;
+    const timeoutId = window.setTimeout(() => setRejectFx(null), 400);
+    return () => window.clearTimeout(timeoutId);
+  }, [rejectFx]);
 
   const upperRows = useMemo(
     () =>
@@ -386,6 +398,8 @@ export function ScoreBoard({
             const showUsed = row.used && !rowCasting;
             const tooltipKey = `slot-${row.slot.id}`;
 
+            const isRejected = rejectFx?.slotId === row.slot.id;
+
             return (
               <div
                 key={row.slot.id}
@@ -395,6 +409,7 @@ export function ScoreBoard({
                   rowHoldState?.phase === "holding" ? "battle-row-arming" : "",
                   row.used ? "battle-row-used" : "",
                   row.impacted ? "battle-row-hit" : "",
+                  isRejected ? "battle-row-rejected" : "",
                 ].join(" ")}
                 onMouseEnter={(event) =>
                   openRowTooltip(
@@ -431,7 +446,8 @@ export function ScoreBoard({
                 <button
                   type="button"
                   aria-label={messages.battle.score.slotTitles[row.slot.key]}
-                  disabled={!canSelect}
+                  disabled={row.used || state.finished || !state.dice}
+                  data-syncing={isCasting ? "true" : undefined}
                   onPointerDown={() => beginHold(row.slot.id)}
                   onPointerUp={() => cancelHold(row.slot.id)}
                   onPointerLeave={() => cancelHold(row.slot.id)}
@@ -448,7 +464,7 @@ export function ScoreBoard({
                       cancelHold(row.slot.id);
                     }
                   }}
-                  className="relative z-[1] flex min-h-[1.86rem] w-full items-center text-left disabled:cursor-not-allowed"
+                  className="relative z-[1] flex min-h-[1.86rem] w-full items-center text-left disabled:cursor-not-allowed data-[syncing=true]:cursor-not-allowed"
                 >
                   <div className="flex w-full items-center gap-2">
                     <img
@@ -506,7 +522,7 @@ export function ScoreBoard({
                   className="battle-element-fill"
                   style={{
                     width: `${rewardProgress}%`,
-                    background: "linear-gradient(90deg,#ffd556_0%,#ff8c39_100%)",
+                    background: "linear-gradient(90deg, #ffd556 0%, #ff8c39 100%)",
                   }}
                 />
                 <span className="battle-element-value">
@@ -531,6 +547,8 @@ export function ScoreBoard({
             const showUsed = row.used && !rowCasting;
             const tooltipKey = `slot-${row.slot.id}`;
 
+            const isRejected = rejectFx?.slotId === row.slot.id;
+
             return (
               <div
                 key={row.slot.id}
@@ -540,6 +558,7 @@ export function ScoreBoard({
                   rowHoldState?.phase === "holding" ? "battle-row-arming" : "",
                   row.used ? "battle-row-used" : "",
                   row.impacted ? "battle-row-hit" : "",
+                  isRejected ? "battle-row-rejected" : "",
                 ].join(" ")}
                 onMouseEnter={(event) =>
                   openRowTooltip(
@@ -574,7 +593,8 @@ export function ScoreBoard({
                 <button
                   type="button"
                   aria-label={messages.battle.score.slotTitles[row.slot.key]}
-                  disabled={!canSelect}
+                  disabled={row.used || state.finished || !state.dice}
+                  data-syncing={isCasting ? "true" : undefined}
                   onPointerDown={() => beginHold(row.slot.id)}
                   onPointerUp={() => cancelHold(row.slot.id)}
                   onPointerLeave={() => cancelHold(row.slot.id)}
@@ -591,7 +611,7 @@ export function ScoreBoard({
                       cancelHold(row.slot.id);
                     }
                   }}
-                  className="relative z-[1] flex min-h-[1.96rem] w-full items-center text-left disabled:cursor-not-allowed"
+                  className="relative z-[1] flex min-h-[1.96rem] w-full items-center text-left disabled:cursor-not-allowed data-[syncing=true]:cursor-not-allowed"
                 >
                   <div className="flex w-full items-center gap-2">
                     <img

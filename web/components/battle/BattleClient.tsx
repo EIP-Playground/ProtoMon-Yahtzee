@@ -19,6 +19,7 @@ import { DiceBoard } from "@/components/battle/DiceBoard";
 import { PassiveItemsPanel } from "@/components/battle/PassiveItemsPanel";
 import { ScoreBoard } from "@/components/battle/ScoreBoard";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { useSmartAccount } from "@/components/providers/SmartAccountProvider";
 import {
   BATTLE_ELEMENT_ASC_ORDER,
   BATTLE_ELEMENT_VISUALS,
@@ -133,6 +134,7 @@ type BattleClientProps = {
 export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   const router = useRouter();
   const { locale, messages } = useLocale();
+  const { isAAEnabled, smartAccountClient, restoreSmartAccount } = useSmartAccount();
   const [state, setState] = useState(() =>
     createInitialBattleState(gameId, initialStateSeed),
   );
@@ -487,16 +489,29 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
       };
 
       try {
+        let finalClient = smartAccountClient;
+        if (isAAEnabled) {
+          try {
+            const { getOrCreateEphemeralKey, setupGaslessAccount } = await import("@/lib/aa/smartAccount");
+            const privKey = getOrCreateEphemeralKey();
+            const { smartAccountClient: freshClient } = await setupGaslessAccount(privKey);
+            finalClient = freshClient;
+          } catch (e) {
+            console.warn("Failed to recreate fresh AA client", e);
+          }
+        }
+
         const proof = await finalizeRound({
           gameId: state.gameId as `0x${string}`,
           player: state.smartAccount,
           rewardRecipient: state.rewardRecipient,
         });
-        ({ txHash } = await sendCastTurnUserOp({
+        let isAA = false;
+        ({ txHash, isAA } = await sendCastTurnUserOp({
           gameId: state.gameId as `0x${string}`,
           slotId,
           proof,
-        }));
+        }, finalClient ?? undefined));
         const shouldAdvanceOptimistically = !nextState.finished;
         let advancedOptimistically = false;
         pendingCast = createPendingCastState(nextState, slotId, txHash);
@@ -551,7 +566,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
           setState(activeState);
         });
 
-        const { event } = await waitForTurnPlayed(txHash);
+        const { event } = await waitForTurnPlayed(txHash, isAA);
         const expectedConfirmedTurn = event.args.won || getUsedSlotsCount(bitmapToSlots(event.args.usedSlotsBitmap)) >= 13
           ? event.args.turn
           : event.args.turn + 1;
@@ -625,7 +640,8 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
             setCastingSlotId(null);
           });
         }
-      } catch {
+      } catch (error) {
+        console.error("Cast Error during AA playTurn:", error);
         startTransition(() => {
           setState((currentState) =>
             txHash
@@ -679,16 +695,49 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
 
     try {
       const sender = await getConnectedSenderAddress();
+
+      let player = sender;
+      let aaClient: unknown = undefined;
+
+      if (isAAEnabled) {
+        try {
+          const { getOrCreateEphemeralKey, setupGaslessAccount, bindEphemeralKeyToGame } =
+            await import("@/lib/aa/smartAccount");
+          const privKey = getOrCreateEphemeralKey();
+          const result = await setupGaslessAccount(privKey);
+          player = result.safeAddress;
+          aaClient = result.smartAccountClient;
+          // Will bind after we have the gameId
+          void bindEphemeralKeyToGame;
+        } catch {
+          // Fall back to EOA if AA setup fails during retry
+        }
+      }
+
       const session = await createBattleSession({
-        player: sender,
+        player,
         rewardRecipient: sender,
         bossId: 1,
       });
-      const { txHash } = await startGameOnChain({
-        gameId: session.gameId,
-        rewardRecipient: session.rewardRecipient,
-        bossId: session.bossId,
-      });
+      const { txHash } = await startGameOnChain(
+        {
+          gameId: session.gameId,
+          rewardRecipient: session.rewardRecipient,
+          bossId: session.bossId,
+        },
+        aaClient,
+      );
+
+      if (isAAEnabled) {
+        try {
+          const { getOrCreateEphemeralKey, bindEphemeralKeyToGame } =
+            await import("@/lib/aa/smartAccount");
+          bindEphemeralKeyToGame(session.gameId, getOrCreateEphemeralKey());
+        } catch {
+          // Non-critical
+        }
+      }
+
       await waitForGameStarted(txHash);
 
       router.push(`/battle/${session.gameId}`);
