@@ -10,6 +10,7 @@ import { LoadingPage } from "@/components/loading/LoadingPage";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { createGameSession } from "@/lib/api/backend";
 import { DEMO_PLAYER, DEMO_REWARD_RECIPIENT } from "@/lib/game/demo";
+import { preloadBattleAssets } from "@/lib/ui/battleAssets";
 import { LOADING_MIN_CREATE_DURATION_MS } from "@/lib/ui/loading";
 
 const ENTRY_LOADING_KEY = "protomon:entry-loading:seen";
@@ -76,20 +77,20 @@ export default function Home() {
     setPendingGameId(null);
 
     const startedAt = performance.now();
+    const battleAssetsPromise = preloadBattleAssets();
 
     try {
-      const session = await createGameSession({
+      const sessionPromise = createGameSession({
         player: DEMO_PLAYER,
         rewardRecipient: DEMO_REWARD_RECIPIENT,
         bossId: 1,
       });
+      const session = await sessionPromise;
 
       const elapsed = performance.now() - startedAt;
       const remaining = Math.max(0, LOADING_MIN_CREATE_DURATION_MS - elapsed);
 
-      if (remaining > 0) {
-        await wait(remaining);
-      }
+      await Promise.all([battleAssetsPromise, remaining > 0 ? wait(remaining) : Promise.resolve()]);
 
       setPendingGameId(session.gameId);
       setCreateReady(true);

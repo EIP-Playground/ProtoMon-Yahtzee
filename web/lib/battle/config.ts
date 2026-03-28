@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n/messages";
+import type { SlotLabel } from "@/lib/game/slots";
 import type { DiceValue } from "@/types/game";
 
 type LocalizedLabel = Record<Locale, string>;
@@ -47,6 +48,13 @@ export type BattleBossDisplayConfig = {
   name: LocalizedLabel;
 };
 
+export type BattleScoreTooltipMeta = {
+  iconDiceValues?: readonly DiceValue[];
+  exampleGroups?: readonly (readonly DiceValue[])[];
+  fixedDamage?: number;
+  showDestinyValues?: boolean;
+};
+
 export type BattleScenePlacement = {
   left: number;
   top: number;
@@ -90,6 +98,17 @@ export const BATTLE_BOSS_DISPLAY: BattleBossDisplayConfig = {
 };
 
 export const BATTLE_ELEMENT_ASC_ORDER: readonly DiceValue[] = [1, 2, 3, 4, 5, 6] as const;
+
+const SMALL_STRAIGHT_GROUPS: readonly (readonly DiceValue[])[] = [
+  [1, 2, 3, 4],
+  [2, 3, 4, 5],
+  [3, 4, 5, 6],
+] as const;
+
+const LARGE_STRAIGHT_GROUPS: readonly (readonly DiceValue[])[] = [
+  [1, 2, 3, 4, 5],
+  [2, 3, 4, 5, 6],
+] as const;
 
 export const BATTLE_SCENE_LAYOUT = {
   trainer: { left: 3.2, top: 28.8, width: 15.2 },
@@ -168,6 +187,70 @@ export const BATTLE_PASSIVE_ITEMS: readonly PassiveItemConfig[] = [
     iconSrc: "/skills/passive-greed-pouch.png",
   },
 ] as const;
+
+export const BATTLE_SCORE_TOOLTIP_META: Record<SlotLabel | "reward", BattleScoreTooltipMeta> = {
+  Upper1: {
+    iconDiceValues: [1, 1, 1],
+    showDestinyValues: true,
+  },
+  Upper2: {
+    iconDiceValues: [2, 2, 2],
+    showDestinyValues: true,
+  },
+  Upper3: {
+    iconDiceValues: [3, 3, 3],
+    showDestinyValues: true,
+  },
+  Upper4: {
+    iconDiceValues: [4, 4, 4],
+    showDestinyValues: true,
+  },
+  Upper5: {
+    iconDiceValues: [5, 5, 5],
+    showDestinyValues: true,
+  },
+  Upper6: {
+    iconDiceValues: [6, 6, 6],
+    showDestinyValues: true,
+  },
+  ThreeKind: {
+    iconDiceValues: [6, 6, 6, 2, 4],
+    showDestinyValues: true,
+  },
+  FourKind: {
+    iconDiceValues: [6, 6, 6, 6, 2],
+    showDestinyValues: true,
+  },
+  FullHouse: {
+    iconDiceValues: [6, 6, 6, 5, 5],
+    fixedDamage: 25,
+    showDestinyValues: true,
+  },
+  SmallStraight: {
+    exampleGroups: SMALL_STRAIGHT_GROUPS,
+    fixedDamage: 30,
+    showDestinyValues: true,
+  },
+  LargeStraight: {
+    exampleGroups: LARGE_STRAIGHT_GROUPS,
+    fixedDamage: 40,
+    showDestinyValues: true,
+  },
+  Yahtzee: {
+    iconDiceValues: [6, 6, 6, 6, 6],
+    fixedDamage: 50,
+    showDestinyValues: true,
+  },
+  Chance: {
+    iconDiceValues: [1, 2, 4, 5, 6],
+    showDestinyValues: true,
+  },
+  reward: {
+    iconDiceValues: BATTLE_ELEMENT_ASC_ORDER,
+    fixedDamage: 35,
+    showDestinyValues: true,
+  },
+};
 
 export const BATTLE_SKILL_META: readonly SkillMeta[] = [
   { slotId: 6, iconSrc: "/skills/skill-three-kind.png" },

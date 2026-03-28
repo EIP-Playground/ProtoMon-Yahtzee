@@ -3,15 +3,18 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import type { CSSProperties } from "react";
 import { IoPowerSharp } from "react-icons/io5";
 
-import { advanceRound, rerollDice, rollDice } from "@/lib/api/backend";
+import { advanceRound, createGameSession, rerollDice, rollDice } from "@/lib/api/backend";
 import { BattleStage } from "@/components/battle/BattleStage";
 import { DiceBoard } from "@/components/battle/DiceBoard";
 import { PassiveItemsPanel } from "@/components/battle/PassiveItemsPanel";
 import { ScoreBoard } from "@/components/battle/ScoreBoard";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import {
+  BATTLE_ELEMENT_ASC_ORDER,
+  BATTLE_ELEMENT_VISUALS,
   BATTLE_BOSS_DISPLAY,
   BATTLE_SCENE_LAYOUT,
 } from "@/lib/battle/config";
@@ -102,19 +105,38 @@ export function BattleClient({ gameId }: BattleClientProps) {
   const [castingSlotId, setCastingSlotId] = useState<number | null>(null);
   const [castFx, setCastFx] = useState<BattleCastFx | null>(null);
   const [exitModalOpen, setExitModalOpen] = useState(false);
+  const [finishModalResult, setFinishModalResult] = useState<"victory" | "defeat" | null>(null);
+  const [finishModalOpen, setFinishModalOpen] = useState(false);
+  const [isRetryingRoom, setIsRetryingRoom] = useState(false);
+  const [finishModalError, setFinishModalError] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const castFxTimeoutRef = useRef<number | null>(null);
   const exitButtonRef = useRef<HTMLButtonElement | null>(null);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
+    const initialState = createInitialBattleState(gameId, {
+      smartAccount: DEMO_PLAYER,
+      rewardRecipient: DEMO_REWARD_RECIPIENT,
+    });
     const restoredState = loadBattleStateSnapshot(gameId);
     const timeoutId = window.setTimeout(() => {
-      if (restoredState) {
-        setState(restoredState);
-      }
-
+      setIsSnapshotReady(false);
+      setState(restoredState ?? initialState);
       setIsSnapshotReady(true);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [gameId]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setFinishModalResult(null);
+      setFinishModalOpen(false);
+      setFinishModalError(null);
+      setIsRetryingRoom(false);
     }, 0);
 
     return () => {
@@ -184,9 +206,29 @@ export function BattleClient({ gameId }: BattleClientProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!state.finished || finishModalResult) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setFinishModalResult(state.won ? "victory" : "defeat");
+      setFinishModalOpen(true);
+      setFinishModalError(null);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [finishModalResult, state.finished, state.won]);
+
   const hudSyncMeta = useMemo(() => getHudSyncMeta(locale, state.syncStatus), [locale, state.syncStatus]);
   const hasUnlockedDice = state.locked.some((value) => !value);
   const bossDisplayName = BATTLE_BOSS_DISPLAY.name[locale];
+  const finishBurstVisuals = useMemo(
+    () => BATTLE_ELEMENT_ASC_ORDER.map((diceValue) => BATTLE_ELEMENT_VISUALS[diceValue]),
+    [],
+  );
   const canDiceAction =
     !state.finished &&
     state.diceActionState === "idle" &&
@@ -361,9 +403,32 @@ export function BattleClient({ gameId }: BattleClientProps) {
     router.push("/");
   }
 
+  function handleCloseFinishModal() {
+    setFinishModalOpen(false);
+    setFinishModalError(null);
+  }
+
+  async function handleRetryBattle() {
+    setFinishModalError(null);
+    setIsRetryingRoom(true);
+
+    try {
+      const session = await createGameSession({
+        player: DEMO_PLAYER,
+        rewardRecipient: DEMO_REWARD_RECIPIENT,
+        bossId: 1,
+      });
+
+      router.push(`/battle/${session.gameId}`);
+    } catch (error) {
+      setFinishModalError(error instanceof Error ? error.message : messages.home.errorCreateGame);
+      setIsRetryingRoom(false);
+    }
+  }
+
   if (!isSnapshotReady) {
     return (
-      <main className="flex h-[100dvh] items-center justify-center overflow-hidden bg-[#040a14] px-6 py-8">
+      <main className="battle-shell flex h-[100dvh] items-center justify-center overflow-hidden bg-[#040a14] px-6 py-8">
         <div className="rounded-[22px] border border-white/10 bg-slate-950/70 px-6 py-5 text-sm text-slate-300">
           {messages.battle.restoringSnapshot}
         </div>
@@ -372,7 +437,7 @@ export function BattleClient({ gameId }: BattleClientProps) {
   }
 
   return (
-    <main className="relative h-[100dvh] overflow-hidden bg-[#040a14] text-white">
+    <main className="battle-shell relative h-[100dvh] overflow-hidden bg-[#040a14] text-white">
       <img
         src="/battle/battle-bg-full.webp"
         alt=""
@@ -522,6 +587,93 @@ export function BattleClient({ gameId }: BattleClientProps) {
               >
                 {locale === "zh-CN" ? "确认" : "Confirm"}
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {finishModalOpen && finishModalResult ? (
+        <div className="absolute inset-0 z-[130] flex items-center justify-center bg-[rgba(3,8,14,0.56)] backdrop-blur-[5px]">
+          <div className="relative w-[min(28rem,calc(100vw-2rem))]">
+            {finishModalResult === "victory" ? (
+              <div className="pointer-events-none absolute inset-0 -z-[1]">
+                {finishBurstVisuals.map((visual, index) => (
+                  <img
+                    key={visual.diceValue}
+                    src={visual.iconSrc}
+                    alt=""
+                    aria-hidden="true"
+                    className="battle-victory-burst"
+                    style={
+                      {
+                        "--burst-x": `${[-122, -72, -36, 36, 82, 128][index]}px`,
+                        "--burst-y": `${[-112, -146, -120, -132, -148, -114][index]}px`,
+                        "--burst-delay": `${index * 95}ms`,
+                      } as CSSProperties
+                    }
+                  />
+                ))}
+              </div>
+            ) : null}
+            <div className="pixel-rounded-lg pixel-panel px-5 py-4 text-center text-[#fff6c8] shadow-[0_20px_38px_rgba(3,8,18,0.34)]">
+              <p className="battle-modal-title pixel-font text-[0.84rem] uppercase tracking-[0.12em] text-[#fff8d1]">
+                {finishModalResult === "victory"
+                  ? messages.battle.finish.victoryTitle
+                  : messages.battle.finish.defeatTitle}
+              </p>
+              <p className="battle-modal-copy pixel-font mt-3 text-[0.6rem] leading-[1.8] text-slate-100">
+                {finishModalResult === "victory"
+                  ? messages.battle.finish.victoryBody
+                  : messages.battle.finish.defeatBody}
+              </p>
+              {finishModalError ? (
+                <p className="battle-modal-copy pixel-font mt-3 text-[0.56rem] leading-[1.7] text-[#ffd0d0]">
+                  {finishModalError}
+                </p>
+              ) : null}
+              <div className="mt-5 flex items-center justify-center gap-3">
+                {finishModalResult === "victory" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/")}
+                      className="battle-modal-action pixel-button inline-flex min-h-[2.4rem] min-w-[6.8rem] items-center justify-center px-4 py-2 text-[0.62rem] uppercase text-[#fff6c8]"
+                    >
+                      {messages.battle.finish.victoryReturn}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCloseFinishModal}
+                      className="battle-modal-action pixel-button inline-flex min-h-[2.4rem] min-w-[6.8rem] items-center justify-center px-4 py-2 text-[0.62rem] uppercase text-[#fff6c8]"
+                    >
+                      {messages.battle.finish.victoryStay}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/")}
+                      disabled={isRetryingRoom}
+                      className="battle-modal-action pixel-button inline-flex min-h-[2.4rem] min-w-[6.8rem] items-center justify-center px-4 py-2 text-[0.62rem] uppercase text-[#fff6c8] disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {messages.battle.finish.defeatReturn}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleRetryBattle();
+                      }}
+                      disabled={isRetryingRoom}
+                      className="battle-modal-action pixel-button pixel-button-warning inline-flex min-h-[2.4rem] min-w-[8.8rem] items-center justify-center px-4 py-2 text-[0.62rem] uppercase text-[#fff6c8] disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isRetryingRoom
+                        ? messages.battle.finish.retrying
+                        : messages.battle.finish.defeatRetry}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

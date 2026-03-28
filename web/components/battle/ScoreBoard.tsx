@@ -6,8 +6,10 @@ import { LuLoaderCircle } from "react-icons/lu";
 
 import { useLocale } from "@/components/providers/LocaleProvider";
 import {
+  ACTIVE_COMPANION_CONFIG,
   BATTLE_ELEMENT_ASC_ORDER,
   BATTLE_ELEMENT_VISUALS,
+  BATTLE_SCORE_TOOLTIP_META,
   BATTLE_SKILL_META,
 } from "@/lib/battle/config";
 import {
@@ -16,6 +18,7 @@ import {
   computeLocalScore,
 } from "@/lib/game/scoring";
 import { SLOT_DEFINITIONS } from "@/lib/game/slots";
+import type { BattleScoreTooltipCopy } from "@/lib/i18n/messages";
 import type { BattleState } from "@/types/game";
 
 type ScoreBoardProps = {
@@ -46,13 +49,18 @@ type HoldState = {
 type RowTooltipState = {
   key: string;
   title: string;
-  description: string;
+  content: BattleScoreTooltipCopy;
+  meta: (typeof BATTLE_SCORE_TOOLTIP_META)[keyof typeof BATTLE_SCORE_TOOLTIP_META];
   anchorLeft: number;
   anchorTop: number;
 };
 
 function spellLabel(raw: string, locale: "zh-CN" | "en") {
   return locale === "zh-CN" ? `【${raw}】` : `[${raw}]`;
+}
+
+function tooltipFixedDamageLabel(locale: "zh-CN" | "en", fixedDamage: number) {
+  return locale === "zh-CN" ? `固定 ${fixedDamage}` : `Fixed ${fixedDamage}`;
 }
 
 export function ScoreBoard({
@@ -276,6 +284,13 @@ export function ScoreBoard({
     0,
     Math.min(100, (state.upperSubtotalLocal / UPPER_BONUS_TARGET) * 100),
   );
+  const destinyValueByDiceValue = useMemo(
+    () =>
+      new Map(
+        ACTIVE_COMPANION_CONFIG.destinyLines.map((line) => [line.diceValue, line.value] as const),
+      ),
+    [],
+  );
 
   const skillRows = useMemo(
     () =>
@@ -300,16 +315,23 @@ export function ScoreBoard({
     [castFx, castingSlotId, state],
   );
 
-  function openRowTooltip(key: string, title: string, description: string, target: HTMLElement) {
+  function openRowTooltip(
+    key: string,
+    title: string,
+    content: BattleScoreTooltipCopy,
+    meta: (typeof BATTLE_SCORE_TOOLTIP_META)[keyof typeof BATTLE_SCORE_TOOLTIP_META],
+    target: HTMLElement,
+  ) {
     const rect = target.getBoundingClientRect();
-    const tooltipWidth = 224;
+    const tooltipWidth = 272;
     const gap = 14;
     const left = Math.max(16, Math.min(rect.right + gap, window.innerWidth - tooltipWidth - 16));
 
     setRowTooltip({
       key,
       title,
-      description,
+      content,
+      meta,
       anchorLeft: left,
       anchorTop: rect.top + rect.height / 2,
     });
@@ -318,6 +340,10 @@ export function ScoreBoard({
   function closeRowTooltip(key: string) {
     setRowTooltip((current) => (current?.key === key ? null : current));
   }
+
+  const tooltipGroups =
+    rowTooltip?.meta.exampleGroups ??
+    (rowTooltip?.meta.iconDiceValues ? [rowTooltip.meta.iconDiceValues] : []);
 
   return (
     <aside className="battle-command-panel pixel-rounded-lg flex h-full flex-col overflow-hidden border-[4px] border-[#545250] bg-[rgba(135,132,129,0.88)] p-[9px] shadow-[0_14px_24px_rgba(10,15,22,0.18)]">
@@ -348,6 +374,7 @@ export function ScoreBoard({
                     tooltipKey,
                     messages.battle.score.slotTitles[row.slot.key],
                     messages.battle.score.slotHints[row.slot.key],
+                    BATTLE_SCORE_TOOLTIP_META[row.slot.key],
                     event.currentTarget,
                   )
                 }
@@ -358,6 +385,7 @@ export function ScoreBoard({
                     tooltipKey,
                     messages.battle.score.slotTitles[row.slot.key],
                     messages.battle.score.slotHints[row.slot.key],
+                    BATTLE_SCORE_TOOLTIP_META[row.slot.key],
                     target,
                   );
                 }}
@@ -389,9 +417,9 @@ export function ScoreBoard({
                       cancelHold(row.slot.id);
                     }
                   }}
-                  className="relative z-[1] w-full text-left disabled:cursor-not-allowed"
+                  className="relative z-[1] flex min-h-[1.86rem] w-full items-center text-left disabled:cursor-not-allowed"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full items-center gap-2">
                     <img
                       src={row.visual.iconSrc}
                       alt={messages.battle.elementLabels[row.visual.diceValue]}
@@ -430,6 +458,7 @@ export function ScoreBoard({
                 "reward-row",
                 messages.battle.score.upperBonusTitle,
                 messages.battle.score.rewardHint,
+                BATTLE_SCORE_TOOLTIP_META.reward,
                 event.currentTarget,
               )
             }
@@ -486,6 +515,7 @@ export function ScoreBoard({
                     tooltipKey,
                     messages.battle.score.slotTitles[row.slot.key],
                     messages.battle.score.slotHints[row.slot.key],
+                    BATTLE_SCORE_TOOLTIP_META[row.slot.key],
                     event.currentTarget,
                   )
                 }
@@ -496,6 +526,7 @@ export function ScoreBoard({
                     tooltipKey,
                     messages.battle.score.slotTitles[row.slot.key],
                     messages.battle.score.slotHints[row.slot.key],
+                    BATTLE_SCORE_TOOLTIP_META[row.slot.key],
                     target,
                   );
                 }}
@@ -527,16 +558,16 @@ export function ScoreBoard({
                       cancelHold(row.slot.id);
                     }
                   }}
-                  className="relative z-[1] w-full text-left disabled:cursor-not-allowed"
+                  className="relative z-[1] flex min-h-[1.96rem] w-full items-center text-left disabled:cursor-not-allowed"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full items-center gap-2">
                     <img
                       src={row.meta.iconSrc}
                       alt={messages.battle.score.slotTitles[row.slot.key]}
                       className="battle-entry-icon"
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-h-[1.72rem] items-center justify-between gap-2">
                         <p className="battle-spell-label">
                           {spellLabel(messages.battle.score.slotTitles[row.slot.key], locale)}
                         </p>
@@ -567,7 +598,7 @@ export function ScoreBoard({
       {rowTooltip && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="battle-row-tooltip pixel-rounded-md pixel-panel pointer-events-none fixed z-[160] max-w-[13rem] px-3 py-2 text-left text-[#fff8d1] shadow-[0_18px_32px_rgba(7,12,20,0.34)]"
+              className="battle-row-tooltip pixel-rounded-md pixel-panel pointer-events-none fixed z-[160] max-w-[16rem] px-3 py-2 text-left text-[#fff8d1] shadow-[0_18px_32px_rgba(7,12,20,0.34)]"
               style={{
                 top: `${rowTooltip.anchorTop}px`,
                 left: `${rowTooltip.anchorLeft}px`,
@@ -575,7 +606,50 @@ export function ScoreBoard({
               }}
             >
               <p className="battle-row-tooltip-title pixel-font">{rowTooltip.title}</p>
-              <p className="battle-row-tooltip-body pixel-font mt-1">{rowTooltip.description}</p>
+              <p className="battle-row-tooltip-body pixel-font mt-1">{rowTooltip.content.summary}</p>
+              {rowTooltip.content.detail ? (
+                <p className="battle-row-tooltip-body pixel-font mt-1">{rowTooltip.content.detail}</p>
+              ) : null}
+              {rowTooltip.meta.fixedDamage ? (
+                <div className="mt-2">
+                  <span className="battle-tooltip-chip pixel-font">
+                    {tooltipFixedDamageLabel(locale, rowTooltip.meta.fixedDamage)} DMG
+                  </span>
+                </div>
+              ) : null}
+              {tooltipGroups.length > 0 ? (
+                <div className="mt-2.5">
+                  {rowTooltip.content.exampleLabel ? (
+                    <p className="battle-row-tooltip-caption pixel-font">{rowTooltip.content.exampleLabel}</p>
+                  ) : null}
+                  <div className="mt-1.5 flex flex-col gap-1.5">
+                    {tooltipGroups.map((group, groupIndex) => (
+                      <div key={`${rowTooltip.key}-group-${groupIndex}`} className="battle-tooltip-icon-row">
+                        {group.map((diceValue, iconIndex) => {
+                          const visual = BATTLE_ELEMENT_VISUALS[diceValue];
+                          const destinyValue = destinyValueByDiceValue.get(diceValue);
+
+                          return (
+                            <span
+                              key={`${rowTooltip.key}-${groupIndex}-${diceValue}-${iconIndex}`}
+                              className="battle-tooltip-icon-chip"
+                            >
+                              <img
+                                src={visual.iconSrc}
+                                alt={messages.battle.elementLabels[diceValue]}
+                                className="battle-tooltip-element-icon"
+                              />
+                              {rowTooltip.meta.showDestinyValues && destinyValue !== undefined ? (
+                                <span className="battle-tooltip-icon-value pixel-font">{destinyValue}</span>
+                              ) : null}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>,
             document.body,
           )

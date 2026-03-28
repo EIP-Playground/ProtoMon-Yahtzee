@@ -8,6 +8,24 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "zh-CN";
 export const LOCALE_STORAGE_KEY = "protomon:locale";
 
+export type BattleScoreTooltipCopy = {
+  summary: string;
+  detail?: string;
+  exampleLabel?: string;
+};
+
+type BattleFinishMessages = {
+  victoryTitle: string;
+  victoryBody: string;
+  victoryReturn: string;
+  victoryStay: string;
+  defeatTitle: string;
+  defeatBody: string;
+  defeatRetry: string;
+  defeatReturn: string;
+  retrying: string;
+};
+
 type LocaleMessages = {
   common: {
     language: string;
@@ -143,8 +161,8 @@ type LocaleMessages = {
       cast: string;
       damage: (amount: number) => string;
       upperBonusTag: (bonusDamage: number) => string;
-      rewardHint: string;
-      slotHints: Record<SlotLabel, string>;
+      rewardHint: BattleScoreTooltipCopy;
+      slotHints: Record<SlotLabel, BattleScoreTooltipCopy>;
       slotTitles: Record<SlotLabel, string>;
     };
     protomon: {
@@ -160,6 +178,7 @@ type LocaleMessages = {
       eyebrow: string;
       description: string;
     };
+    finish: BattleFinishMessages;
     sync: {
       eyebrow: string;
       title: string;
@@ -342,21 +361,77 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         cast: "CAST",
         damage: (amount) => `${amount} dmg`,
         upperBonusTag: (bonusDamage) => `+${bonusDamage} 上半区奖励`,
-        rewardHint: "上半区累计达到 63 分时，额外获得 35 点奖励伤害。",
+        rewardHint: {
+          summary: "上半区累计达到 63 分时，额外获得 35 点奖励伤害。",
+          detail: "当前累计一旦开始增长，这里就会显示奖励进度。",
+          exampleLabel: "上半区元素",
+        },
         slotHints: {
-          Upper1: "统计所有水元素骰面，累计成当前水系伤害。",
-          Upper2: "统计所有金元素骰面，累计成当前金系伤害。",
-          Upper3: "统计所有土元素骰面，累计成当前土系伤害。",
-          Upper4: "统计所有风元素骰面，累计成当前风系伤害。",
-          Upper5: "统计所有木元素骰面，累计成当前木系伤害。",
-          Upper6: "统计所有火元素骰面，累计成当前火系伤害。",
-          ThreeKind: "至少三枚同元素时释放三条伤害。",
-          FourKind: "至少四枚同元素时释放四条伤害。",
-          FullHouse: "三同加两同的组合会触发葫芦伤害。",
-          SmallStraight: "任意四连序列会触发小顺伤害。",
-          LargeStraight: "完整五连序列会触发大顺伤害。",
-          Yahtzee: "五枚同元素时触发快艇终结伤害。",
-          Chance: "结算全部骰面总和，释放机会伤害。",
+          Upper1: {
+            summary: "统计所有水元素骰面，累计成当前水系伤害。",
+            detail: "该行只吃水元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper2: {
+            summary: "统计所有金元素骰面，累计成当前金系伤害。",
+            detail: "该行只吃金元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper3: {
+            summary: "统计所有土元素骰面，累计成当前土系伤害。",
+            detail: "该行只吃土元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper4: {
+            summary: "统计所有风元素骰面，累计成当前风系伤害。",
+            detail: "该行只吃风元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper5: {
+            summary: "统计所有木元素骰面，累计成当前木系伤害。",
+            detail: "该行只吃木元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper6: {
+            summary: "统计所有火元素骰面，累计成当前火系伤害。",
+            detail: "该行只吃火元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          ThreeKind: {
+            summary: "至少三枚相同元素即可触发三条。",
+            detail: "伤害会结算 5 枚骰面的总和，不只计算那三枚相同元素。",
+            exampleLabel: "触发示例",
+          },
+          FourKind: {
+            summary: "至少四枚相同元素即可触发四条。",
+            detail: "伤害会结算 5 枚骰面的总和，剩余那一枚也会一起算进去。",
+            exampleLabel: "触发示例",
+          },
+          FullHouse: {
+            summary: "三同元素 + 两同元素时触发葫芦。",
+            detail: "固定伤害 25，不再按骰面总和追加。",
+            exampleLabel: "触发示例",
+          },
+          SmallStraight: {
+            summary: "任意四连元素序列都会触发小顺。",
+            detail: "固定伤害 30。下面用当前六行天命值举例展示可用连序。",
+            exampleLabel: "可用连序",
+          },
+          LargeStraight: {
+            summary: "完整五连元素序列会触发大顺。",
+            detail: "固定伤害 40。下面用当前六行天命值举例展示可用连序。",
+            exampleLabel: "可用连序",
+          },
+          Yahtzee: {
+            summary: "五枚相同元素时触发快艇终结。",
+            detail: "固定伤害 50，是当前最强的单次牌型伤害。",
+            exampleLabel: "触发示例",
+          },
+          Chance: {
+            summary: "机会会结算全部 5 枚骰面的总和。",
+            detail: "没有牌型门槛，只要你想把当前总和直接打出去，就可以用它。",
+            exampleLabel: "示例骰面",
+          },
         },
         slotTitles: {
           Upper1: "💧 水 / 一点",
@@ -386,6 +461,17 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       session: {
         eyebrow: "会话网关",
         description: "Demo 模式。钱包与 session key 暂时旁路，当前只接后端权威骰面与本地结算。",
+      },
+      finish: {
+        victoryTitle: "胜利",
+        victoryBody: "哥布林机巧萨满已被击倒。本场 ProtoMon 试炼完成。",
+        victoryReturn: "返回大厅",
+        victoryStay: "继续查看",
+        defeatTitle: "失败",
+        defeatBody: "13 个槽位已经全部耗尽。要立即锻造新的战斗房间吗？",
+        defeatRetry: "重新开战",
+        defeatReturn: "返回大厅",
+        retrying: "房间锻造中…",
       },
       sync: {
         eyebrow: "同步",
@@ -586,21 +672,77 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         cast: "CAST",
         damage: (amount) => `${amount} dmg`,
         upperBonusTag: (bonusDamage) => `+${bonusDamage} upper bonus`,
-        rewardHint: "Reach 63 points in the upper section to unlock +35 bonus damage.",
+        rewardHint: {
+          summary: "Reach 63 points in the upper section to unlock +35 bonus damage.",
+          detail: "As soon as the subtotal starts climbing, this row will show the reward progress.",
+          exampleLabel: "Upper elements",
+        },
         slotHints: {
-          Upper1: "Convert all water dice faces into current water damage.",
-          Upper2: "Convert all metal dice faces into current metal damage.",
-          Upper3: "Convert all earth dice faces into current earth damage.",
-          Upper4: "Convert all air dice faces into current air damage.",
-          Upper5: "Convert all wood dice faces into current wood damage.",
-          Upper6: "Convert all fire dice faces into current fire damage.",
-          ThreeKind: "Cast this row with at least three matching faces.",
-          FourKind: "Cast this row with at least four matching faces.",
-          FullHouse: "Three of one face plus two of another triggers this cast.",
-          SmallStraight: "Any four-step sequence triggers this cast.",
-          LargeStraight: "A full five-step sequence triggers this cast.",
-          Yahtzee: "Five matching faces unleash the Yahtzee finisher.",
-          Chance: "Spend the total of all dice faces as raw damage.",
+          Upper1: {
+            summary: "Convert every water face into current water damage.",
+            detail: "Only water faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper2: {
+            summary: "Convert every metal face into current metal damage.",
+            detail: "Only metal faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper3: {
+            summary: "Convert every earth face into current earth damage.",
+            detail: "Only earth faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper4: {
+            summary: "Convert every air face into current air damage.",
+            detail: "Only air faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper5: {
+            summary: "Convert every wood face into current wood damage.",
+            detail: "Only wood faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper6: {
+            summary: "Convert every fire face into current fire damage.",
+            detail: "Only fire faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          ThreeKind: {
+            summary: "Three of a kind triggers this cast.",
+            detail: "The damage is the sum of all 5 dice, not just the matching three.",
+            exampleLabel: "Trigger example",
+          },
+          FourKind: {
+            summary: "Four of a kind triggers this cast.",
+            detail: "The damage is the sum of all 5 dice, so the leftover die is counted too.",
+            exampleLabel: "Trigger example",
+          },
+          FullHouse: {
+            summary: "Three of one face plus two of another triggers Full House.",
+            detail: "This cast deals a fixed 25 damage.",
+            exampleLabel: "Trigger example",
+          },
+          SmallStraight: {
+            summary: "Any four-step consecutive sequence triggers Small Straight.",
+            detail: "This cast deals a fixed 30 damage. The examples below use the current destiny-line ordering.",
+            exampleLabel: "Valid sequences",
+          },
+          LargeStraight: {
+            summary: "Any five-step consecutive sequence triggers Large Straight.",
+            detail: "This cast deals a fixed 40 damage. The examples below use the current destiny-line ordering.",
+            exampleLabel: "Valid sequences",
+          },
+          Yahtzee: {
+            summary: "Five matching faces unleash the Yahtzee finisher.",
+            detail: "This cast deals a fixed 50 damage.",
+            exampleLabel: "Trigger example",
+          },
+          Chance: {
+            summary: "Chance spends the total of all 5 dice as raw damage.",
+            detail: "There is no pattern gate. Use it when the current total is worth cashing out.",
+            exampleLabel: "Example dice",
+          },
         },
         slotTitles: {
           Upper1: "💧 Water / Ones",
@@ -631,6 +773,17 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         eyebrow: "Session Gate",
         description:
           "Demo mode. Wallet and session-key plumbing are bypassed for now. This build only wires backend-authoritative dice with local resolution.",
+      },
+      finish: {
+        victoryTitle: "Victory",
+        victoryBody: "Goblin Gear Shaman is down. This ProtoMon trial is complete.",
+        victoryReturn: "Return to Lobby",
+        victoryStay: "Keep Viewing",
+        defeatTitle: "Defeat",
+        defeatBody: "All 13 slots are exhausted. Forge a fresh battle room?",
+        defeatRetry: "Retry in New Room",
+        defeatReturn: "Return to Lobby",
+        retrying: "Forging room…",
       },
       sync: {
         eyebrow: "Sync",

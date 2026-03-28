@@ -331,6 +331,35 @@ a {
   }
 }
 
+@keyframes battle-victory-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.34);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  78% {
+    opacity: 1;
+    transform: translate(
+        calc(-50% + var(--burst-x, 0px)),
+        calc(-50% + var(--burst-y, 0px))
+      )
+      scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--burst-x, 0px)),
+        calc(-50% + var(--burst-y, 0px) - 12px)
+      )
+      scale(1.08);
+  }
+}
+
 .pixel-font {
   font-family: var(--font-body);
   letter-spacing: var(--pixel-letter-spacing);
@@ -777,7 +806,7 @@ a {
   font-weight: 700;
   text-transform: uppercase;
   color: #1f2937;
-  line-height: 1.3;
+  line-height: 1.08;
   text-shadow:
     0.04rem 0 0 rgba(255, 255, 255, 0.28),
     -0.04rem 0 0 rgba(255, 255, 255, 0.18),
@@ -787,6 +816,7 @@ a {
 .battle-spell-damage {
   font-size: 0.65rem;
   color: #1f2937;
+  line-height: 1;
 }
 
 .battle-spell-damage-hit {
@@ -801,6 +831,7 @@ a {
   background: rgba(245, 95, 72, 0.94);
   padding: 0.16rem 0.35rem;
   font-size: 0.44rem;
+  line-height: 1;
   text-transform: uppercase;
   color: #fff5ed;
 }
@@ -840,6 +871,51 @@ a {
   color: #e6eef8;
 }
 
+.battle-row-tooltip-caption {
+  font-size: 0.46rem;
+  line-height: 1.5;
+  color: #ffd978;
+}
+
+.battle-tooltip-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.12rem solid rgba(255, 213, 86, 0.9);
+  background: rgba(255, 214, 88, 0.16);
+  padding: 0.16rem 0.36rem;
+  font-size: 0.46rem;
+  color: #fff0b5;
+}
+
+.battle-tooltip-icon-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.battle-tooltip-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  border: 0.08rem solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.16rem 0.22rem;
+}
+
+.battle-tooltip-element-icon {
+  display: block;
+  height: 1rem;
+  width: 1rem;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.battle-tooltip-icon-value {
+  font-size: 0.44rem;
+  color: #fff8d1;
+}
+
 .battle-hud-chip {
   font-size: 0.62rem;
 }
@@ -872,7 +948,7 @@ html[data-locale="zh-CN"] .battle-element-value {
 
 html[data-locale="zh-CN"] .battle-spell-label {
   font-size: 1rem;
-  line-height: 0.5;
+  line-height: 1.08;
 }
 
 html[data-locale="zh-CN"] .battle-spell-damage {
@@ -890,6 +966,18 @@ html[data-locale="zh-CN"] .battle-row-tooltip-title {
 html[data-locale="zh-CN"] .battle-row-tooltip-body {
   font-size: 0.9rem;
   line-height: 1.62;
+}
+
+html[data-locale="zh-CN"] .battle-row-tooltip-caption {
+  font-size: 0.8rem;
+}
+
+html[data-locale="zh-CN"] .battle-tooltip-chip {
+  font-size: 0.72rem;
+}
+
+html[data-locale="zh-CN"] .battle-tooltip-icon-value {
+  font-size: 0.72rem;
 }
 
 html[data-locale="zh-CN"] .battle-hud-chip {
@@ -917,6 +1005,20 @@ html[data-locale="zh-CN"] .battle-destiny-value {
 
 .battle-damage-pop {
   animation: battle-damage-pop 900ms ease-out forwards;
+}
+
+.battle-victory-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  height: 2rem;
+  width: 2rem;
+  opacity: 0;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 12px rgba(255, 215, 86, 0.28));
+  animation: battle-victory-burst 1.6s ease-out infinite;
+  animation-delay: var(--burst-delay, 0ms);
 }
 
 .pixel-tag {
@@ -1121,6 +1223,23 @@ html[data-locale="zh-CN"] .battle-destiny-value {
   -webkit-font-smoothing: none;
   font-smooth: never;
   font-weight: 700;
+}
+
+.home-shell,
+.home-shell *,
+.loading-shell,
+.loading-shell *,
+.battle-shell,
+.battle-shell * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.home-shell img,
+.loading-shell img,
+.battle-shell img {
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
 .animate-pixel-blink {

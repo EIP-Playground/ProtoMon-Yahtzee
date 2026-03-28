@@ -12,6 +12,7 @@ import {
   LOADING_BAR_WIDTH,
   LOADING_REVEAL_CAP,
 } from "@/lib/ui/loading";
+import { preloadLoadingAssets } from "@/lib/ui/loadingAssets";
 
 const PARTICLE_COLORS = ["#FFD700", "#4ADE80", "#38BDF8", "#F97316", "#A16207", "#93C5FD"];
 const STATIC_DICE_FACES = [
@@ -81,6 +82,9 @@ export function LoadingPage({
   const [messageIndex, setMessageIndex] = useState(0);
   const [fadeMessage, setFadeMessage] = useState(true);
   const [done, setDone] = useState(false);
+  const [assetsReady, setAssetsReady] = useState(
+    () => typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent),
+  );
   const [backgroundReady, setBackgroundReady] = useState(false);
   const progressRef = useRef(0);
   const completeTimeoutRef = useRef<number | null>(null);
@@ -93,11 +97,32 @@ export function LoadingPage({
   const messageList = customMessages ?? messages.loading.defaultMessages;
 
   useEffect(() => {
+    if (assetsReady) {
+      return undefined;
+    }
+
+    let active = true;
+
+    void preloadLoadingAssets().then(() => {
+      if (!active) {
+        return;
+      }
+
+      setAssetsReady(true);
+      setBackgroundReady(true);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [assetsReady]);
+
+  useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
 
   useEffect(() => {
-    if (messageList.length <= 1) {
+    if (!assetsReady || messageList.length <= 1) {
       return undefined;
     }
 
@@ -110,10 +135,10 @@ export function LoadingPage({
     }, Math.max(1600, Math.round((duration * 1.45) / messageList.length)));
 
     return () => window.clearInterval(interval);
-  }, [duration, messageList]);
+  }, [assetsReady, duration, messageList]);
 
   useEffect(() => {
-    if (mode !== "timed") {
+    if (!assetsReady || mode !== "timed") {
       return undefined;
     }
 
@@ -151,10 +176,10 @@ export function LoadingPage({
         window.clearTimeout(completeTimeoutRef.current);
       }
     };
-  }, [duration, mode, onComplete]);
+  }, [assetsReady, duration, mode, onComplete]);
 
   useEffect(() => {
-    if (mode !== "pending" || ready) {
+    if (!assetsReady || mode !== "pending" || ready) {
       return undefined;
     }
 
@@ -182,10 +207,10 @@ export function LoadingPage({
     return () => {
       window.cancelAnimationFrame(animationFrame);
     };
-  }, [duration, mode, ready]);
+  }, [assetsReady, duration, mode, ready]);
 
   useEffect(() => {
-    if (mode !== "pending" || !ready) {
+    if (!assetsReady || mode !== "pending" || !ready) {
       return undefined;
     }
 
@@ -223,7 +248,36 @@ export function LoadingPage({
         window.clearTimeout(completeTimeoutRef.current);
       }
     };
-  }, [mode, onComplete, ready]);
+  }, [assetsReady, mode, onComplete, ready]);
+
+  if (!assetsReady) {
+    return (
+      <div className="loading-shell fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: "linear-gradient(180deg, #09101b 0%, #0b1524 54%, #050c16 100%)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-15"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(0,200,255,0.22) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,255,0.22) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+        <div className="relative z-10 flex flex-col items-center gap-3 px-6 text-center">
+          <p className="title-pixel text-[clamp(1.4rem,3vw,2.2rem)] uppercase text-[#ffd556] [text-shadow:0_0_16px_rgba(255,213,86,0.32)]">
+            {resolvedTitle}
+          </p>
+          <p className="pixel-font animate-pixel-blink text-[clamp(0.66rem,1.2vw,0.9rem)] uppercase tracking-[0.12em] text-[#d7ecff]">
+            {resolvedLoadingLabel}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="loading-shell fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden">
