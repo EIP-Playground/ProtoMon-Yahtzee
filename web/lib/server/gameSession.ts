@@ -13,6 +13,8 @@ export type BackendGameSession = {
   currentDice: StoredDiceArray;
   finalized: boolean;
   finalizedProof: DealerProof | null;
+  pendingChainTxHash: HexString | null;
+  pendingTurn: number | null;
   createdAt: number;
   expiresAt: number;
 };
@@ -51,6 +53,8 @@ export function createBackendGameSession(input: {
     currentDice: EMPTY_DICE,
     finalized: false,
     finalizedProof: null,
+    pendingChainTxHash: null,
+    pendingTurn: null,
     createdAt: now,
     expiresAt: now + SESSION_TTL_SECONDS * 1000,
   } satisfies BackendGameSession;

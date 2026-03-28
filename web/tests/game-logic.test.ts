@@ -169,11 +169,11 @@ describe("battleStore helpers", () => {
     ).toBeNull();
   });
 
-  it("applies local cast, consumes the slot, and advances the turn", () => {
+  it("applies local cast and keeps chain-confirmed state untouched until receipt", () => {
     const nextState = applyLocalCast(withDice([2, 2, 2, 4, 5], { selectedSlotId: 6 }), 6);
 
     expect(nextState.bossHpLocal).toBe(150 - 15);
-    expect(nextState.bossHpChain).toBe(150 - 15);
+    expect(nextState.bossHpChain).toBe(150);
     expect(nextState.usedSlots[6]).toBe(true);
     expect(nextState.slotResults[6]).toMatchObject({
       score: 15,
@@ -181,11 +181,10 @@ describe("battleStore helpers", () => {
       bonusDamage: 0,
       dice: [2, 2, 2, 4, 5],
     });
-    expect(nextState.dice).toBeNull();
-    expect(nextState.locked).toEqual([false, false, false, false, false]);
     expect(nextState.selectedSlotId).toBeNull();
-    expect(nextState.rollCount).toBe(0);
-    expect(nextState.turn).toBe(2);
+    expect(nextState.dice).toEqual([2, 2, 2, 4, 5]);
+    expect(nextState.rollCount).toBe(1);
+    expect(nextState.turn).toBe(1);
     expect(nextState.finished).toBe(false);
     expect(nextState.won).toBe(false);
   });

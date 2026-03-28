@@ -31,6 +31,17 @@ type StartGameInput = {
   bossId: number;
 };
 
+type GameStartedEvent = {
+  eventName: "GameStarted";
+  args: {
+    gameId: HexString;
+    player: HexAddress;
+    rewardRecipient: HexAddress;
+    bossId: number;
+    bossHp: number;
+  };
+};
+
 type OnChainGameSession = {
   player: HexAddress;
   rewardRecipient: HexAddress;
@@ -102,12 +113,12 @@ function normalizeTurnPlayedArgs(args: {
   gameId: Hex;
   player: HexAddress;
   rewardRecipient: HexAddress;
-  turn: bigint;
-  slotId: bigint;
-  damage: bigint;
-  bossHpAfter: bigint;
-  upperSubtotalAfter: bigint;
-  usedSlotsBitmap: bigint;
+  turn: bigint | number;
+  slotId: bigint | number;
+  damage: bigint | number;
+  bossHpAfter: bigint | number;
+  upperSubtotalAfter: bigint | number;
+  usedSlotsBitmap: bigint | number;
   won: boolean;
 }): TurnPlayedEvent {
   return {
@@ -143,8 +154,7 @@ function toContractDealerProof(proof: DealerProof) {
 export async function startGameOnChain(input: StartGameInput) {
   const sender = await getConnectedSenderAddress();
   await requireWalletClient();
-  const { writeContract, waitForTransactionReceipt, walletConfig, walletChain } =
-    await getWagmiContext();
+  const { writeContract, walletConfig, walletChain } = await getWagmiContext();
 
   const hash = await writeContract(walletConfig, {
     account: sender,
@@ -155,18 +165,83 @@ export async function startGameOnChain(input: StartGameInput) {
     args: [input.gameId, input.rewardRecipient, input.bossId],
   });
 
+  return {
+    txHash: hash,
+  };
+}
+
+export async function waitForGameStarted(txHash: HexString) {
+  const publicClient = await getRequiredPublicClient();
+  const { waitForTransactionReceipt, walletConfig } = await getWagmiContext();
   const receipt = await waitForTransactionReceipt(walletConfig, {
-    hash,
+    hash: txHash,
   });
 
   if (receipt.status !== "success") {
     throw new Error("startGame transaction failed on chain.");
   }
 
-  return {
-    txHash: hash,
-    receipt,
-  };
+  for (const log of receipt.logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: protoMonGameAbi,
+        data: log.data,
+        topics: log.topics,
+      });
+
+      if (decoded.eventName === "GameStarted") {
+        return {
+          receipt,
+          event: {
+            eventName: "GameStarted" as const,
+            args: {
+              gameId: decoded.args.gameId,
+              player: getAddress(decoded.args.player) as HexAddress,
+              rewardRecipient: getAddress(decoded.args.rewardRecipient) as HexAddress,
+              bossId: Number(decoded.args.bossId),
+              bossHp: Number(decoded.args.bossHp),
+            },
+          } satisfies GameStartedEvent,
+        };
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  const receiptResult = await publicClient.getTransactionReceipt({
+    hash: txHash,
+  });
+
+  for (const log of receiptResult.logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: protoMonGameAbi,
+        data: log.data,
+        topics: log.topics,
+      });
+
+      if (decoded.eventName === "GameStarted") {
+        return {
+          receipt: receiptResult,
+          event: {
+            eventName: "GameStarted" as const,
+            args: {
+              gameId: decoded.args.gameId,
+              player: getAddress(decoded.args.player) as HexAddress,
+              rewardRecipient: getAddress(decoded.args.rewardRecipient) as HexAddress,
+              bossId: Number(decoded.args.bossId),
+              bossHp: Number(decoded.args.bossHp),
+            },
+          } satisfies GameStartedEvent,
+        };
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error("GameStarted event was not found in the transaction receipt.");
 }
 
 export async function sendCastTurnUserOp(input: {

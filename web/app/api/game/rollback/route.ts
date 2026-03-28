@@ -1,22 +1,19 @@
-import { saveBackendGameSession, getBackendGameSession } from "@/lib/server/gameSession";
+import { readGameSessionOnChain } from "@/lib/chain/gameContract";
+import { getBackendGameSession, saveBackendGameSession } from "@/lib/server/gameSession";
 import {
   ApiRouteError,
   handleRouteError,
   readJsonObject,
   requireAddressField,
   requireGameIdField,
-  requireIntegerField,
-  requireTxHashField,
 } from "@/lib/server/http";
-import type { AdvanceRoundResult } from "@/types/game";
+import type { RollbackRoundResult } from "@/types/game";
 
 export async function POST(request: Request) {
   try {
     const body = await readJsonObject(request);
     const gameId = requireGameIdField(body, "gameId");
     const player = requireAddressField(body, "player");
-    const nextTurn = requireIntegerField(body, "nextTurn");
-    const pendingTxHash = requireTxHashField(body, "pendingTxHash");
     const session = await getBackendGameSession(gameId);
 
     if (!session) {
@@ -27,47 +24,37 @@ export async function POST(request: Request) {
       throw new ApiRouteError(409, "PLAYER_MISMATCH", "Player does not match the game session.");
     }
 
-    if (session.rollCount < 1) {
-      throw new ApiRouteError(409, "ROLL_NOT_STARTED", "The current round has not started yet.");
-    }
+    const chainSession = await readGameSessionOnChain(gameId);
 
-    if (session.pendingChainTxHash) {
-      throw new ApiRouteError(
-        409,
-        "PENDING_CHAIN_CONFIRMATION",
-        "The game session already has a pending on-chain turn.",
-      );
-    }
-
-    if (nextTurn !== session.turn + 1) {
-      throw new ApiRouteError(
-        409,
-        "INVALID_NEXT_TURN",
-        "nextTurn must advance exactly one round.",
-      );
-    }
-
-    if (nextTurn < 2 || nextTurn > 13) {
-      throw new ApiRouteError(400, "INVALID_NEXT_TURN", "nextTurn must stay within 2..13.");
+    if (!chainSession) {
+      throw new ApiRouteError(404, "CHAIN_GAME_NOT_FOUND", "On-chain game session was not found.");
     }
 
     const updatedSession = {
       ...session,
-      turn: nextTurn,
+      rewardRecipient: chainSession.rewardRecipient,
+      bossId: chainSession.bossId,
+      turn: chainSession.turn,
       rollCount: 0,
       currentDice: [0, 0, 0, 0, 0] as [0, 0, 0, 0, 0],
       finalized: false,
       finalizedProof: null,
-      pendingChainTxHash: pendingTxHash,
-      pendingTurn: nextTurn,
+      pendingChainTxHash: null,
+      pendingTurn: null,
     };
 
     await saveBackendGameSession(updatedSession);
 
-    const response: AdvanceRoundResult = {
+    const response: RollbackRoundResult = {
       gameId: updatedSession.gameId,
       turn: updatedSession.turn,
       rollCount: updatedSession.rollCount,
+      bossHp: chainSession.bossHp,
+      upperSubtotal: chainSession.upperSubtotal,
+      upperBonusClaimed: chainSession.upperBonusClaimed,
+      usedSlotsBitmap: chainSession.usedSlotsBitmap,
+      finished: chainSession.finished,
+      won: chainSession.won,
     };
 
     return Response.json(response);

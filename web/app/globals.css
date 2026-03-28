@@ -871,6 +871,12 @@ a {
   color: #e6eef8;
 }
 
+.battle-row-tooltip-notice {
+  font-size: 0.46rem;
+  line-height: 1.65;
+  color: #ffe28a;
+}
+
 .battle-row-tooltip-caption {
   font-size: 0.46rem;
   line-height: 1.5;
@@ -918,6 +924,10 @@ a {
 
 .battle-hud-chip {
   font-size: 0.62rem;
+}
+
+.battle-sync-tooltip {
+  pointer-events: none;
 }
 
 .battle-modal-title {
@@ -970,6 +980,11 @@ html[data-locale="zh-CN"] .battle-row-tooltip-body {
 
 html[data-locale="zh-CN"] .battle-row-tooltip-caption {
   font-size: 0.8rem;
+}
+
+html[data-locale="zh-CN"] .battle-row-tooltip-notice {
+  font-size: 0.84rem;
+  line-height: 1.6;
 }
 
 html[data-locale="zh-CN"] .battle-tooltip-chip {

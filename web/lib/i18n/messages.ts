@@ -14,6 +14,8 @@ export type BattleScoreTooltipCopy = {
   exampleLabel?: string;
 };
 
+type BattleSyncLampState = "READY" | "SYNCING" | "ERROR" | "ROLLBACK_REQUIRED";
+
 type BattleFinishMessages = {
   victoryTitle: string;
   victoryBody: string;
@@ -128,6 +130,7 @@ type LocaleMessages = {
       castingButton: string;
       battleFinished: string;
       syncingCast: string;
+      pendingChain: string;
       rolling: string;
       clickToStart: string;
       lockThenRoll: string;
@@ -179,11 +182,18 @@ type LocaleMessages = {
       description: string;
     };
     finish: BattleFinishMessages;
-    sync: {
-      eyebrow: string;
-      title: string;
-      statusCopy: Record<SyncStatus, string>;
-      pendingTxAssigned: (hash: string) => string;
+      sync: {
+        eyebrow: string;
+        title: string;
+        statusCopy: Record<SyncStatus, string>;
+        lampCopy: Record<BattleSyncLampState, string>;
+        lampTooltipLabel: string;
+        castPendingHint: string;
+        castSubmittingHint: string;
+        rollbackTitle: string;
+        rollbackBody: string;
+        rollbackAction: string;
+        pendingTxAssigned: (hash: string) => string;
       pendingTxMissing: string;
       debug: string;
       redisKey: (key: string) => string;
@@ -327,6 +337,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         castingButton: "正在施法",
         battleFinished: "战斗结束",
         syncingCast: "正在同步本地施法结果",
+        pendingChain: "上一回合链上确认中，可继续掷骰",
         rolling: "云端骰面生成中…",
         clickToStart: "点击 ROLL 开始当前回合",
         lockThenRoll: "锁定想保留的骰子，再按 ROLL",
@@ -483,6 +494,18 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           RETRYABLE_FAIL: "提交失败，可重试。",
           ROLLBACK: "链上结果与本地不一致，已回滚。",
         },
+        lampCopy: {
+          READY: "链上状态已确认，本地没有领先回合。",
+          SYNCING: "本地或后端已经领先链上，正在等待链上确认。",
+          ERROR: "本次同步出现异常，当前回合需要人工处理。",
+          ROLLBACK_REQUIRED: "链上结果与本地乐观状态不一致，需要回滚到最新链上确认态。",
+        },
+        lampTooltipLabel: "同步状态说明",
+        castPendingHint: "上一回合仍在同步中，需等待确认完成后才能释放下一次技能。",
+        castSubmittingHint: "当前施法正在提交中，等待本次交易发出后才能继续操作。",
+        rollbackTitle: "空间扭曲",
+        rollbackBody: "检测到链上结果与本地乐观状态不一致。请回滚到最新链上确认态后继续。",
+        rollbackAction: "空间扭曲：回滚",
         pendingTxAssigned: (hash) => `pendingTxHash: ${hash}`,
         pendingTxMissing: "pendingTxHash: 尚未分配",
         debug: "调试",
@@ -638,6 +661,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         castingButton: "Casting…",
         battleFinished: "Battle finished",
         syncingCast: "Syncing local cast result",
+        pendingChain: "Previous turn is still confirming on chain. You can keep rolling.",
         rolling: "Rolling authoritative dice…",
         clickToStart: "Press ROLL to start this turn",
         lockThenRoll: "Lock the dice you want to keep, then press ROLL",
@@ -795,6 +819,18 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           RETRYABLE_FAIL: "Submission failed and can be retried.",
           ROLLBACK: "Chain result mismatched local state and was rolled back.",
         },
+        lampCopy: {
+          READY: "The on-chain state is confirmed and the local board is not ahead.",
+          SYNCING: "The local or backend state is ahead of chain confirmation.",
+          ERROR: "This sync step failed before a rollback was required.",
+          ROLLBACK_REQUIRED: "The on-chain result diverged from the optimistic local state and must be rolled back.",
+        },
+        lampTooltipLabel: "Sync status details",
+        castPendingHint: "The previous turn is still syncing on chain. Wait for confirmation before casting the next skill.",
+        castSubmittingHint: "The current cast is still being submitted. Wait until this transaction is sent before acting again.",
+        rollbackTitle: "Space Warp",
+        rollbackBody: "The on-chain result diverged from the optimistic local state. Roll back to the latest confirmed chain state to continue.",
+        rollbackAction: "Space Warp: Roll Back",
         pendingTxAssigned: (hash) => `pendingTxHash: ${hash}`,
         pendingTxMissing: "pendingTxHash: not assigned",
         debug: "Debug",

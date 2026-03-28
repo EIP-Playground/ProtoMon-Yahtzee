@@ -13,6 +13,7 @@ const redisMock = {
 
 const generateDiceMock = vi.fn();
 const rerollWithMaskMock = vi.fn();
+const readGameSessionOnChainMock = vi.fn();
 
 vi.mock("@/lib/server/redis", () => ({
   getRedis: () => redisMock,
@@ -23,10 +24,16 @@ vi.mock("@/lib/server/rng", () => ({
   rerollWithMask: (...args: unknown[]) => rerollWithMaskMock(...args),
 }));
 
+vi.mock("@/lib/chain/gameContract", () => ({
+  readGameSessionOnChain: (...args: unknown[]) => readGameSessionOnChainMock(...args),
+}));
+
 import { POST as createGame } from "@/app/api/game/create/route";
 import { POST as advanceGame } from "@/app/api/game/advance/route";
+import { POST as confirmGame } from "@/app/api/game/confirm/route";
 import { POST as finalizeGame } from "@/app/api/game/finalize/route";
 import { POST as rerollGame } from "@/app/api/game/reroll/route";
+import { POST as rollbackGame } from "@/app/api/game/rollback/route";
 import { POST as rollGame } from "@/app/api/game/roll/route";
 import { getGameSessionKey } from "@/lib/server/gameSession";
 import { ZERO_ADDRESS } from "@/lib/server/validation";
@@ -57,8 +64,10 @@ describe("game api routes", () => {
     redisMock.set.mockClear();
     generateDiceMock.mockReset();
     rerollWithMaskMock.mockReset();
+    readGameSessionOnChainMock.mockReset();
     generateDiceMock.mockReturnValue(initialDice);
     rerollWithMaskMock.mockReturnValue(rerolledDice);
+    readGameSessionOnChainMock.mockResolvedValue(null);
     process.env.NEXT_PUBLIC_CHAIN_ID = "84532";
     process.env.NEXT_PUBLIC_PROTO_MON_GAME_ADDRESS = ZERO_ADDRESS;
     process.env.BACKEND_DEALER_PRIVATE_KEY =
@@ -359,6 +368,7 @@ describe("game api routes", () => {
         gameId: created.gameId,
         player,
         nextTurn: 2,
+        pendingTxHash: `0x${"2".repeat(64)}`,
       }),
     );
 
@@ -383,5 +393,131 @@ describe("game api routes", () => {
       rollCount: 1,
       dice: initialDice,
     });
+  });
+
+  it("confirms a pending turn and clears the backend pending transaction", async () => {
+    const createResponse = await createGame(
+      jsonRequest("/api/game/create", {
+        player,
+        rewardRecipient,
+        bossId: 1,
+      }),
+    );
+    const created = await readJson<{ gameId: string }>(createResponse);
+    const pendingTxHash = `0x${"2".repeat(64)}`;
+
+    await rollGame(
+      jsonRequest("/api/game/roll", {
+        gameId: created.gameId,
+        player,
+      }),
+    );
+    await advanceGame(
+      jsonRequest("/api/game/advance", {
+        gameId: created.gameId,
+        player,
+        nextTurn: 2,
+        pendingTxHash,
+      }),
+    );
+
+    const confirmResponse = await confirmGame(
+      jsonRequest("/api/game/confirm", {
+        gameId: created.gameId,
+        player,
+        pendingTxHash,
+        confirmedTurn: 2,
+      }),
+    );
+
+    expect(confirmResponse.status).toBe(200);
+    expect(await readJson(confirmResponse)).toMatchObject({
+      gameId: created.gameId,
+      turn: 2,
+    });
+
+    const storedSession = store.get(getGameSessionKey(created.gameId)) as {
+      turn: number;
+      pendingChainTxHash: string | null;
+      pendingTurn: number | null;
+    };
+
+    expect(storedSession.turn).toBe(2);
+    expect(storedSession.pendingChainTxHash).toBeNull();
+    expect(storedSession.pendingTurn).toBeNull();
+  });
+
+  it("rolls backend state back to the latest confirmed chain state", async () => {
+    const createResponse = await createGame(
+      jsonRequest("/api/game/create", {
+        player,
+        rewardRecipient,
+        bossId: 1,
+      }),
+    );
+    const created = await readJson<{ gameId: string }>(createResponse);
+
+    await rollGame(
+      jsonRequest("/api/game/roll", {
+        gameId: created.gameId,
+        player,
+      }),
+    );
+    await advanceGame(
+      jsonRequest("/api/game/advance", {
+        gameId: created.gameId,
+        player,
+        nextTurn: 2,
+        pendingTxHash: `0x${"3".repeat(64)}`,
+      }),
+    );
+
+    readGameSessionOnChainMock.mockResolvedValue({
+      player,
+      rewardRecipient,
+      bossId: 1,
+      turn: 2,
+      bossHp: 133,
+      upperSubtotal: 18,
+      upperBonusClaimed: false,
+      usedSlotsBitmap: 32,
+      finished: false,
+      won: false,
+    });
+
+    const rollbackResponse = await rollbackGame(
+      jsonRequest("/api/game/rollback", {
+        gameId: created.gameId,
+        player,
+      }),
+    );
+
+    expect(rollbackResponse.status).toBe(200);
+    expect(await readJson(rollbackResponse)).toMatchObject({
+      gameId: created.gameId,
+      turn: 2,
+      rollCount: 0,
+      bossHp: 133,
+      upperSubtotal: 18,
+      usedSlotsBitmap: 32,
+      finished: false,
+      won: false,
+    });
+
+    const storedSession = store.get(getGameSessionKey(created.gameId)) as {
+      turn: number;
+      rollCount: number;
+      pendingChainTxHash: string | null;
+      pendingTurn: number | null;
+      currentDice: number[];
+      finalized: boolean;
+    };
+
+    expect(storedSession.turn).toBe(2);
+    expect(storedSession.rollCount).toBe(0);
+    expect(storedSession.pendingChainTxHash).toBeNull();
+    expect(storedSession.pendingTurn).toBeNull();
+    expect(storedSession.currentDice).toEqual([0, 0, 0, 0, 0]);
+    expect(storedSession.finalized).toBe(false);
   });
 });

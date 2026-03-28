@@ -8,9 +8,13 @@ const rollDiceMock = vi.fn();
 const rerollDiceMock = vi.fn();
 const finalizeRoundMock = vi.fn();
 const advanceRoundMock = vi.fn();
+const confirmRoundMock = vi.fn();
+const rollbackRoundMock = vi.fn();
 const sendCastTurnUserOpMock = vi.fn();
 const waitForTurnPlayedMock = vi.fn();
-const createAndStartBattleSessionMock = vi.fn();
+const createBattleSessionMock = vi.fn();
+const startGameOnChainMock = vi.fn();
+const waitForGameStartedMock = vi.fn();
 const getConnectedSenderAddressMock = vi.fn();
 const pushMock = vi.fn();
 
@@ -40,16 +44,20 @@ vi.mock("@/lib/api/backend", () => ({
   rerollDice: (...args: unknown[]) => rerollDiceMock(...args),
   finalizeRound: (...args: unknown[]) => finalizeRoundMock(...args),
   advanceRound: (...args: unknown[]) => advanceRoundMock(...args),
+  confirmRound: (...args: unknown[]) => confirmRoundMock(...args),
+  rollbackRound: (...args: unknown[]) => rollbackRoundMock(...args),
 }));
 
 vi.mock("@/lib/chain/gameContract", () => ({
   getConnectedSenderAddress: (...args: unknown[]) => getConnectedSenderAddressMock(...args),
+  startGameOnChain: (...args: unknown[]) => startGameOnChainMock(...args),
+  waitForGameStarted: (...args: unknown[]) => waitForGameStartedMock(...args),
   sendCastTurnUserOp: (...args: unknown[]) => sendCastTurnUserOpMock(...args),
   waitForTurnPlayed: (...args: unknown[]) => waitForTurnPlayedMock(...args),
 }));
 
 vi.mock("@/lib/game/session", () => ({
-  createAndStartBattleSession: (...args: unknown[]) => createAndStartBattleSessionMock(...args),
+  createBattleSession: (...args: unknown[]) => createBattleSessionMock(...args),
 }));
 
 vi.mock("@/components/battle/BattleHudControls", () => ({
@@ -80,6 +88,17 @@ function renderBattleClient() {
   return render(<BattleClient gameId="0xtestgame" initialStateSeed={INITIAL_SEED} />);
 }
 
+function createDeferredPromise<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}
+
 describe("BattleClient", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
@@ -87,12 +106,27 @@ describe("BattleClient", () => {
     rerollDiceMock.mockReset();
     finalizeRoundMock.mockReset();
     advanceRoundMock.mockReset();
+    confirmRoundMock.mockReset();
+    rollbackRoundMock.mockReset();
     sendCastTurnUserOpMock.mockReset();
     waitForTurnPlayedMock.mockReset();
-    createAndStartBattleSessionMock.mockReset();
+    createBattleSessionMock.mockReset();
+    startGameOnChainMock.mockReset();
+    waitForGameStartedMock.mockReset();
     getConnectedSenderAddressMock.mockReset();
     pushMock.mockReset();
     getConnectedSenderAddressMock.mockResolvedValue(INITIAL_SEED.smartAccount);
+    rollbackRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      turn: 1,
+      rollCount: 0,
+      bossHp: 150,
+      upperSubtotal: 0,
+      upperBonusClaimed: false,
+      usedSlotsBitmap: 0,
+      finished: false,
+      won: false,
+    });
   });
 
   afterEach(() => {
@@ -314,6 +348,10 @@ describe("BattleClient", () => {
       turn: 2,
       rollCount: 0,
     });
+    confirmRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      turn: 2,
+    });
 
     storeSnapshot(
       createHydratedState({
@@ -333,6 +371,7 @@ describe("BattleClient", () => {
       expect(sendCastTurnUserOpMock).toHaveBeenCalledTimes(1);
       expect(waitForTurnPlayedMock).toHaveBeenCalledTimes(1);
       expect(advanceRoundMock).toHaveBeenCalledTimes(1);
+      expect(confirmRoundMock).toHaveBeenCalledTimes(1);
     });
   }, 8000);
 
@@ -353,4 +392,206 @@ describe("BattleClient", () => {
 
     expect(await screen.findByText("统计所有水元素骰面，累计成当前水系伤害。")).toBeInTheDocument();
   });
+
+  it("shows a custom tooltip for the sync status lamp", async () => {
+    const user = userEvent.setup();
+
+    storeSnapshot(
+      createHydratedState({
+        pendingTxHash: `0x${"3".repeat(64)}`,
+        syncStatus: "PENDING_CHAIN",
+      }),
+    );
+
+    renderBattleClient();
+
+    const syncChip = await screen.findByLabelText("同步状态说明");
+    await user.hover(syncChip);
+
+    expect(await screen.findByText("本地或后端已经领先链上，正在等待链上确认。")).toBeInTheDocument();
+    expect(screen.getByText("上一回合仍在同步中，需等待确认完成后才能释放下一次技能。")).toBeInTheDocument();
+  });
+
+  it("explains blocked casting while the previous turn is still syncing", async () => {
+    const user = userEvent.setup();
+
+    storeSnapshot(
+      createHydratedState({
+        dice: [6, 6, 6, 4, 1],
+        rollCount: 1,
+        turn: 2,
+        confirmedTurn: 1,
+        pendingTxHash: `0x${"4".repeat(64)}`,
+        syncStatus: "PENDING_CHAIN",
+      }),
+    );
+
+    renderBattleClient();
+
+    const row = await screen.findByRole("button", { name: /火 \/ 六点/ });
+    await user.hover(row.closest(".battle-row-shell") as HTMLElement);
+
+    expect(await screen.findByText("上一回合仍在同步中，需等待确认完成后才能释放下一次技能。")).toBeInTheDocument();
+  });
+
+  it("keeps second-round dice visible when the previous turn confirms later", async () => {
+    const user = userEvent.setup();
+    const turnPlayedDeferred = createDeferredPromise<{
+      event: {
+        eventName: "TurnPlayed";
+        args: {
+          gameId: "0xtestgame";
+          player: typeof INITIAL_SEED.smartAccount;
+          rewardRecipient: typeof INITIAL_SEED.rewardRecipient;
+          turn: number;
+          slotId: number;
+          damage: number;
+          bossHpAfter: number;
+          upperSubtotalAfter: number;
+          usedSlotsBitmap: number;
+          won: boolean;
+        };
+      };
+    }>();
+
+    finalizeRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      player: INITIAL_SEED.smartAccount,
+      rewardRecipient: INITIAL_SEED.rewardRecipient,
+      turn: 1,
+      finalRollCount: 1,
+      dice: [6, 6, 6, 6, 6],
+      expiry: Math.floor(Date.now() / 1000) + 600,
+      chainId: 11155111,
+      verifyingContract: "0x743aAd4ab89EaE037Fce8f69bB8e0937B566C9f1",
+      backendSig: `0x${"1".repeat(130)}`,
+    });
+    sendCastTurnUserOpMock.mockResolvedValue({
+      txHash: `0x${"2".repeat(64)}`,
+    });
+    waitForTurnPlayedMock.mockImplementation(() => turnPlayedDeferred.promise);
+    advanceRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      turn: 2,
+      rollCount: 0,
+    });
+    confirmRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      turn: 2,
+    });
+    rollDiceMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      turn: 2,
+      rollCount: 1,
+      dice: [1, 1, 1, 1, 1] as DiceArray,
+    });
+
+    storeSnapshot(
+      createHydratedState({
+        dice: [6, 6, 6, 6, 6],
+        rollCount: 1,
+      }),
+    );
+
+    renderBattleClient();
+    const row = await screen.findByRole("button", { name: /火 \/ 六点/ });
+
+    fireEvent.pointerDown(row);
+    await new Promise((resolve) => window.setTimeout(resolve, 1600));
+
+    await waitFor(() => {
+      expect(advanceRoundMock).toHaveBeenCalledTimes(1);
+    });
+
+    await user.click(await screen.findByRole("button", { name: /^ROLL\(3\/3\)$/ }));
+    await waitFor(() => {
+      expect(rollDiceMock).toHaveBeenCalledTimes(1);
+    });
+    expect(await screen.findByRole("button", { name: /^ROLL\(2\/3\)$/ }, { timeout: 2000 })).toBeInTheDocument();
+    expect(document.querySelectorAll('img[src="/dice/dice-water.png"]')).toHaveLength(5);
+
+    turnPlayedDeferred.resolve({
+      event: {
+        eventName: "TurnPlayed",
+        args: {
+          gameId: "0xtestgame",
+          player: INITIAL_SEED.smartAccount,
+          rewardRecipient: INITIAL_SEED.rewardRecipient,
+          turn: 1,
+          slotId: 5,
+          damage: 30,
+          bossHpAfter: 120,
+          upperSubtotalAfter: 30,
+          usedSlotsBitmap: 32,
+          won: false,
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(confirmRoundMock).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("button", { name: /^ROLL\(2\/3\)$/ })).toBeInTheDocument();
+    });
+    expect(document.querySelectorAll('img[src="/dice/dice-water.png"]')).toHaveLength(5);
+    expect(document.querySelectorAll('img[src="/dice/dice-fire.png"]')).toHaveLength(0);
+  }, 12000);
+
+  it("shows the rollback modal when confirmed chain state mismatches optimistic local state", async () => {
+    finalizeRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      player: INITIAL_SEED.smartAccount,
+      rewardRecipient: INITIAL_SEED.rewardRecipient,
+      turn: 1,
+      finalRollCount: 1,
+      dice: [6, 6, 6, 4, 1],
+      expiry: Math.floor(Date.now() / 1000) + 600,
+      chainId: 11155111,
+      verifyingContract: "0x743aAd4ab89EaE037Fce8f69bB8e0937B566C9f1",
+      backendSig: `0x${"1".repeat(130)}`,
+    });
+    sendCastTurnUserOpMock.mockResolvedValue({
+      txHash: `0x${"2".repeat(64)}`,
+    });
+    waitForTurnPlayedMock.mockResolvedValue({
+      event: {
+        eventName: "TurnPlayed",
+        args: {
+          gameId: "0xtestgame",
+          player: INITIAL_SEED.smartAccount,
+          rewardRecipient: INITIAL_SEED.rewardRecipient,
+          turn: 1,
+          slotId: 5,
+          damage: 18,
+          bossHpAfter: 149,
+          upperSubtotalAfter: 18,
+          usedSlotsBitmap: 32,
+          won: false,
+        },
+      },
+    });
+    advanceRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      turn: 2,
+      rollCount: 0,
+    });
+    confirmRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      turn: 2,
+    });
+
+    storeSnapshot(
+      createHydratedState({
+        dice: [6, 6, 6, 4, 1],
+        rollCount: 1,
+      }),
+    );
+
+    renderBattleClient();
+    const row = await screen.findByRole("button", { name: /火 \/ 六点/ });
+
+    fireEvent.pointerDown(row);
+    await new Promise((resolve) => window.setTimeout(resolve, 1600));
+
+    expect(await screen.findByRole("button", { name: "空间扭曲：回滚" })).toBeInTheDocument();
+  }, 10000);
 });

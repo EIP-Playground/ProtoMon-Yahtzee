@@ -6,7 +6,14 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import { IoPowerSharp } from "react-icons/io5";
 
-import { advanceRound, finalizeRound, rerollDice, rollDice } from "@/lib/api/backend";
+import {
+  advanceRound,
+  confirmRound,
+  finalizeRound,
+  rerollDice,
+  rollbackRound,
+  rollDice,
+} from "@/lib/api/backend";
 import { BattleStage } from "@/components/battle/BattleStage";
 import { DiceBoard } from "@/components/battle/DiceBoard";
 import { PassiveItemsPanel } from "@/components/battle/PassiveItemsPanel";
@@ -20,21 +27,25 @@ import {
 } from "@/lib/battle/config";
 import {
   getConnectedSenderAddress,
+  startGameOnChain,
+  waitForGameStarted,
   sendCastTurnUserOp,
   waitForTurnPlayed,
 } from "@/lib/chain/gameContract";
-import { lockedToHoldMask } from "@/lib/game/dice";
-import { createAndStartBattleSession } from "@/lib/game/session";
+import { EMPTY_LOCKED_DICE, lockedToHoldMask } from "@/lib/game/dice";
+import { createBattleSession } from "@/lib/game/session";
 import { bitmapToSlots, getUsedSlotsCount } from "@/lib/game/slots";
 import {
+  advanceOptimisticRound,
   applyLocalCast,
   applyRollResult,
   createInitialBattleState,
+  createPendingCastState,
   loadBattleStateSnapshot,
   saveBattleStateSnapshot,
   toggleLockedDie,
 } from "@/store/battleStore";
-import type { BattleState, SyncStatus, TurnPlayedEvent } from "@/types/game";
+import type { BattleState, PendingCastState, TurnPlayedEvent } from "@/types/game";
 
 const ROLL_VISUAL_MIN_MS = 700;
 const BOARD_BASE_WIDTH = 1300;
@@ -52,43 +63,64 @@ type BattleCastFx = {
   kind: "element" | "skill";
 };
 
+type HudSyncLampState = "READY" | "SYNCING" | "ERROR" | "ROLLBACK_REQUIRED";
+
 function sleep(ms: number) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
 }
 
-function getHudSyncMeta(locale: "zh-CN" | "en", status: SyncStatus) {
-  switch (status) {
-    case "LOCAL_APPLIED":
+function deriveHudLampState(state: BattleState): HudSyncLampState {
+  if (state.rollbackRequired || state.syncStatus === "ROLLBACK") {
+    return "ROLLBACK_REQUIRED";
+  }
+
+  if (state.syncStatus === "RETRYABLE_FAIL") {
+    return "ERROR";
+  }
+
+  if (
+    state.pendingTxHash ||
+    state.syncStatus === "PENDING_CHAIN" ||
+    state.syncStatus === "LOCAL_APPLIED" ||
+    state.turn !== state.confirmedTurn
+  ) {
+    return "SYNCING";
+  }
+
+  return "READY";
+}
+
+function getHudSyncMeta(locale: "zh-CN" | "en", lampState: HudSyncLampState) {
+  switch (lampState) {
+    case "READY":
       return {
-        label: locale === "zh-CN" ? "云端就绪" : "Cloud Ready",
+        label: locale === "zh-CN" ? "同步完成" : "Ready",
+        lampClassName: "bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.55)] animate-pulse",
         className:
           "border-emerald-300/25 bg-emerald-400/12 text-emerald-100 shadow-[0_0_20px_rgba(52,211,153,0.16)]",
       };
-    case "PENDING_CHAIN":
+    case "SYNCING":
       return {
         label: locale === "zh-CN" ? "同步中" : "Syncing",
+        lampClassName: "bg-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.5)] animate-pulse",
         className:
           "border-amber-300/25 bg-amber-400/12 text-amber-100 shadow-[0_0_20px_rgba(251,191,36,0.14)]",
       };
-    case "CONFIRMED":
+    case "ERROR":
       return {
-        label: locale === "zh-CN" ? "链上确认" : "Confirmed",
-        className:
-          "border-sky-300/25 bg-sky-400/12 text-sky-100 shadow-[0_0_20px_rgba(56,189,248,0.14)]",
-      };
-    case "RETRYABLE_FAIL":
-      return {
-        label: locale === "zh-CN" ? "同步失败" : "Retry",
+        label: locale === "zh-CN" ? "同步异常" : "Error",
+        lampClassName: "bg-rose-400 shadow-[0_0_16px_rgba(251,113,133,0.45)]",
         className:
           "border-rose-300/25 bg-rose-400/12 text-rose-100 shadow-[0_0_20px_rgba(251,113,133,0.18)]",
       };
-    case "ROLLBACK":
+    case "ROLLBACK_REQUIRED":
       return {
-        label: locale === "zh-CN" ? "已回滚" : "Rollback",
+        label: locale === "zh-CN" ? "空间扭曲" : "Rollback",
+        lampClassName: "bg-red-500 shadow-[0_0_16px_rgba(239,68,68,0.5)]",
         className:
-          "border-fuchsia-300/25 bg-fuchsia-400/12 text-fuchsia-100 shadow-[0_0_20px_rgba(217,70,239,0.16)]",
+          "border-red-300/25 bg-red-400/12 text-red-100 shadow-[0_0_20px_rgba(239,68,68,0.18)]",
       };
   }
 }
@@ -113,6 +145,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   const [finishModalOpen, setFinishModalOpen] = useState(false);
   const [isRetryingRoom, setIsRetryingRoom] = useState(false);
   const [finishModalError, setFinishModalError] = useState<string | null>(null);
+  const [syncTooltipOpen, setSyncTooltipOpen] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const castFxTimeoutRef = useRef<number | null>(null);
   const exitButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -215,7 +248,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   }, []);
 
   useEffect(() => {
-    if (!state.finished || finishModalResult) {
+    if (!state.finished || finishModalResult || state.rollbackRequired || state.syncStatus === "ROLLBACK") {
       return;
     }
 
@@ -228,10 +261,12 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [finishModalResult, state.finished, state.won]);
+  }, [finishModalResult, state.finished, state.rollbackRequired, state.syncStatus, state.won]);
 
-  const hudSyncMeta = useMemo(() => getHudSyncMeta(locale, state.syncStatus), [locale, state.syncStatus]);
+  const hudLampState = useMemo(() => deriveHudLampState(state), [state]);
+  const hudSyncMeta = useMemo(() => getHudSyncMeta(locale, hudLampState), [hudLampState, locale]);
   const hasUnlockedDice = state.locked.some((value) => !value);
+  const rollbackBlocked = state.rollbackRequired || state.syncStatus === "ROLLBACK";
   const bossDisplayName = BATTLE_BOSS_DISPLAY.name[locale];
   const finishBurstVisuals = useMemo(
     () => BATTLE_ELEMENT_ASC_ORDER.map((diceValue) => BATTLE_ELEMENT_VISUALS[diceValue]),
@@ -239,6 +274,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   );
   const canDiceAction =
     !state.finished &&
+    !rollbackBlocked &&
     state.diceActionState === "idle" &&
     state.castActionState === "idle" &&
     (state.rollCount === 0 || (state.rollCount < 3 && hasUnlockedDice));
@@ -248,28 +284,70 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   );
   const slotProgressDisplay = state.finished ? 13 : Math.min(usedSlotsCount + 1, 13);
 
+  function matchesOptimisticTurn(
+    optimisticSnapshot: PendingCastState["optimisticSnapshot"],
+    event: TurnPlayedEvent,
+  ) {
+    const eventUsedSlots = bitmapToSlots(event.args.usedSlotsBitmap);
+
+    return (
+      optimisticSnapshot.bossHpLocal === event.args.bossHpAfter &&
+      optimisticSnapshot.upperSubtotalLocal === event.args.upperSubtotalAfter &&
+      optimisticSnapshot.won === event.args.won &&
+      getUsedSlotsCount(optimisticSnapshot.usedSlots) === getUsedSlotsCount(eventUsedSlots) &&
+      Object.entries(eventUsedSlots).every(
+        ([slotId, used]) => optimisticSnapshot.usedSlots[Number(slotId)] === used,
+      )
+    );
+  }
+
+  function hasActiveRoundProgress(currentState: BattleState, confirmedTurn: number) {
+    return (
+      currentState.turn > confirmedTurn ||
+      currentState.rollCount > 0 ||
+      currentState.dice !== null ||
+      currentState.selectedSlotId !== null ||
+      currentState.locked.some(Boolean)
+    );
+  }
+
   function reconcileConfirmedTurn(
-    optimisticState: BattleState,
-    slotId: number,
-    nextTurn: number | null,
+    currentState: BattleState,
+    pendingCast: PendingCastState,
+    confirmedTurn: number,
     event: TurnPlayedEvent,
   ) {
     const usedSlots = bitmapToSlots(event.args.usedSlotsBitmap);
     const finished = event.args.won || getUsedSlotsCount(usedSlots) >= 13;
+    const preserveActiveRound = hasActiveRoundProgress(currentState, confirmedTurn);
+    const confirmedUpperBonusClaimed =
+      pendingCast.optimisticSnapshot.upperBonusClaimedLocal || event.args.upperSubtotalAfter >= 63;
+    const nextState = {
+      ...currentState,
+      bossHpChain: event.args.bossHpAfter,
+      confirmedTurn,
+      confirmedUsedSlots: usedSlots,
+      confirmedUpperSubtotalLocal: event.args.upperSubtotalAfter,
+      confirmedUpperBonusClaimedLocal: confirmedUpperBonusClaimed,
+      confirmedFinished: finished,
+      confirmedWon: event.args.won,
+      castActionState: "idle" as const,
+    };
+
+    if (preserveActiveRound) {
+      return nextState;
+    }
 
     return {
-      ...optimisticState,
+      ...nextState,
       bossHpLocal: event.args.bossHpAfter,
-      bossHpChain: event.args.bossHpAfter,
       usedSlots,
       upperSubtotalLocal: event.args.upperSubtotalAfter,
-      upperBonusClaimedLocal:
-        optimisticState.upperBonusClaimedLocal || optimisticState.slotResults[slotId]?.bonusDamage === 35,
+      upperBonusClaimedLocal: confirmedUpperBonusClaimed,
       finished,
       won: event.args.won,
-      turn: nextTurn ?? optimisticState.turn,
-      castActionState: "idle" as const,
-      syncStatus: "CONFIRMED" as const,
+      turn: confirmedTurn,
+      carryoverDice: currentState.carryoverDice,
     };
   }
 
@@ -293,7 +371,6 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         setState((currentState) => ({
           ...applyRollResult(currentState, result),
           diceActionState: "idle",
-          syncStatus: "LOCAL_APPLIED",
         }));
       });
     } catch {
@@ -340,7 +417,11 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   }
 
   function handleToggleLock(dieIndex: number) {
-    if (state.diceActionState === "waiting" || state.castActionState === "waiting") {
+    if (
+      state.diceActionState === "waiting" ||
+      state.castActionState === "waiting" ||
+      rollbackBlocked
+    ) {
       return;
     }
 
@@ -354,7 +435,9 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
       !state.dice ||
       state.usedSlots[slotId] ||
       state.finished ||
-      state.castActionState === "waiting"
+      state.castActionState === "waiting" ||
+      !!state.pendingTxHash ||
+      rollbackBlocked
     ) {
       return;
     }
@@ -387,67 +470,182 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         castActionState: "waiting",
         syncStatus: "PENDING_CHAIN",
         pendingTxHash: undefined,
+        pendingCast: null,
+        rollbackRequired: false,
       });
     });
 
     void (async () => {
+      let txHash: `0x${string}` | undefined;
+      let pendingCast: PendingCastState | null = null;
+      let activeState: BattleState = {
+        ...nextState,
+        pendingTxHash: undefined,
+        pendingCast: null,
+        syncStatus: "PENDING_CHAIN" as const,
+        rollbackRequired: false,
+      };
+
       try {
         const proof = await finalizeRound({
           gameId: state.gameId as `0x${string}`,
           player: state.smartAccount,
           rewardRecipient: state.rewardRecipient,
         });
-        const { txHash } = await sendCastTurnUserOp({
+        ({ txHash } = await sendCastTurnUserOp({
           gameId: state.gameId as `0x${string}`,
           slotId,
           proof,
-        });
+        }));
+        const shouldAdvanceOptimistically = !nextState.finished;
+        let advancedOptimistically = false;
+        pendingCast = createPendingCastState(nextState, slotId, txHash);
+        activeState = {
+          ...nextState,
+          pendingTxHash: txHash,
+          pendingCast,
+          syncStatus: "PENDING_CHAIN" as const,
+          rollbackRequired: false,
+        };
 
-        startTransition(() => {
-          setState((currentState) => ({
-            ...currentState,
-            pendingTxHash: txHash,
-            syncStatus: "PENDING_CHAIN",
-          }));
-        });
-
-        const { event } = await waitForTurnPlayed(txHash);
-        const chainConfirmedState = reconcileConfirmedTurn(nextState, slotId, null, event);
-
-        try {
-          let advancedTurn: number | null = null;
-
-          if (!(event.args.won || getUsedSlotsCount(bitmapToSlots(event.args.usedSlotsBitmap)) >= 13)) {
+        if (shouldAdvanceOptimistically) {
+          try {
             const advanced = await advanceRound({
               gameId: state.gameId as `0x${string}`,
               player: state.smartAccount,
-              nextTurn: event.args.turn + 1,
+              nextTurn: state.turn + 1,
+              pendingTxHash: txHash,
             });
+            activeState = {
+              ...advanceOptimisticRound(nextState),
+              turn: advanced.turn,
+              pendingTxHash: txHash,
+              pendingCast,
+              syncStatus: "PENDING_CHAIN",
+              castActionState: "idle",
+              rollbackRequired: false,
+            };
+            advancedOptimistically = true;
+          } catch {
+            activeState = {
+              ...nextState,
+              pendingTxHash: txHash,
+              pendingCast,
+              syncStatus: "PENDING_CHAIN",
+              castActionState: "waiting",
+              rollbackRequired: false,
+            };
+          }
+        } else {
+          activeState = {
+            ...nextState,
+            pendingTxHash: txHash,
+            pendingCast,
+            syncStatus: "PENDING_CHAIN",
+            castActionState: "idle",
+            rollbackRequired: false,
+          };
+        }
 
-            advancedTurn = advanced.turn;
+        startTransition(() => {
+          setState(activeState);
+        });
+
+        const { event } = await waitForTurnPlayed(txHash);
+        const expectedConfirmedTurn = event.args.won || getUsedSlotsCount(bitmapToSlots(event.args.usedSlotsBitmap)) >= 13
+          ? event.args.turn
+          : event.args.turn + 1;
+        const optimisticMismatch = !pendingCast
+          || !matchesOptimisticTurn(pendingCast.optimisticSnapshot, event);
+
+        try {
+          if (advancedOptimistically) {
+            await confirmRound({
+              gameId: state.gameId as `0x${string}`,
+              player: state.smartAccount,
+              pendingTxHash: txHash,
+              confirmedTurn: expectedConfirmedTurn,
+            });
+          } else if (!event.args.won && getUsedSlotsCount(bitmapToSlots(event.args.usedSlotsBitmap)) < 13) {
+            await advanceRound({
+              gameId: state.gameId as `0x${string}`,
+              player: state.smartAccount,
+              nextTurn: event.args.turn + 1,
+              pendingTxHash: txHash,
+            });
+            await confirmRound({
+              gameId: state.gameId as `0x${string}`,
+              player: state.smartAccount,
+              pendingTxHash: txHash,
+              confirmedTurn: event.args.turn + 1,
+            });
           }
 
           startTransition(() => {
-            setState(reconcileConfirmedTurn(nextState, slotId, advancedTurn, event));
+            setState((currentState) => {
+              const mergedState = pendingCast
+                ? reconcileConfirmedTurn(
+                    currentState,
+                    pendingCast,
+                    expectedConfirmedTurn,
+                    event,
+                  )
+                : currentState;
+
+              return {
+                ...mergedState,
+                pendingTxHash: optimisticMismatch ? currentState.pendingTxHash ?? txHash : undefined,
+                pendingCast: optimisticMismatch ? currentState.pendingCast ?? pendingCast : null,
+                syncStatus: optimisticMismatch ? "ROLLBACK" : "CONFIRMED",
+                rollbackRequired: optimisticMismatch,
+              };
+            });
             setCastingSlotId(null);
           });
         } catch {
           startTransition(() => {
-            setState({
-              ...chainConfirmedState,
-              syncStatus: "RETRYABLE_FAIL",
+            setState((currentState) => {
+              const mergedState = pendingCast
+                ? reconcileConfirmedTurn(
+                    currentState,
+                    pendingCast,
+                    expectedConfirmedTurn,
+                    event,
+                  )
+                : currentState;
+
+              return {
+                ...mergedState,
+                pendingTxHash: currentState.pendingTxHash ?? txHash,
+                pendingCast: currentState.pendingCast ?? pendingCast,
+                syncStatus: "ROLLBACK",
+                rollbackRequired: true,
+              };
             });
             setCastingSlotId(null);
           });
         }
       } catch {
         startTransition(() => {
-          setState({
-            ...previousState,
-            castActionState: "idle",
-            syncStatus: "RETRYABLE_FAIL",
-            pendingTxHash: undefined,
-          });
+          setState((currentState) =>
+            txHash
+              ? {
+                  ...currentState,
+                  castActionState: "idle",
+                  pendingTxHash: currentState.pendingTxHash ?? txHash,
+                  pendingCast: currentState.pendingCast ?? pendingCast,
+                  syncStatus: "ROLLBACK",
+                  rollbackRequired: true,
+                }
+              : {
+                  ...previousState,
+                  castActionState: "idle",
+                  pendingTxHash: undefined,
+                  pendingCast: null,
+                  syncStatus: "RETRYABLE_FAIL",
+                  rollbackRequired: false,
+                },
+          );
           setCastingSlotId(null);
         });
       }
@@ -481,16 +679,71 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
 
     try {
       const sender = await getConnectedSenderAddress();
-      const session = await createAndStartBattleSession({
+      const session = await createBattleSession({
         player: sender,
         rewardRecipient: sender,
         bossId: 1,
       });
+      const { txHash } = await startGameOnChain({
+        gameId: session.gameId,
+        rewardRecipient: session.rewardRecipient,
+        bossId: session.bossId,
+      });
+      await waitForGameStarted(txHash);
 
       router.push(`/battle/${session.gameId}`);
     } catch (error) {
       setFinishModalError(error instanceof Error ? error.message : messages.home.errorCreateGame);
       setIsRetryingRoom(false);
+    }
+  }
+
+  async function handleRollbackBattle() {
+    try {
+      const rolledBack = await rollbackRound({
+        gameId: state.gameId as `0x${string}`,
+        player: state.smartAccount,
+      });
+      const rolledBackSlots = bitmapToSlots(rolledBack.usedSlotsBitmap);
+
+      startTransition(() => {
+        setState((currentState) => ({
+          ...currentState,
+          bossHpLocal: rolledBack.bossHp,
+          bossHpChain: rolledBack.bossHp,
+          turn: rolledBack.turn,
+          confirmedTurn: rolledBack.turn,
+          rollCount: rolledBack.rollCount,
+          dice: null,
+          carryoverDice: null,
+          locked: EMPTY_LOCKED_DICE,
+          selectedSlotId: null,
+          usedSlots: rolledBackSlots,
+          confirmedUsedSlots: rolledBackSlots,
+          upperSubtotalLocal: rolledBack.upperSubtotal,
+          confirmedUpperSubtotalLocal: rolledBack.upperSubtotal,
+          upperBonusClaimedLocal: rolledBack.upperBonusClaimed,
+          confirmedUpperBonusClaimedLocal: rolledBack.upperBonusClaimed,
+          finished: rolledBack.finished,
+          confirmedFinished: rolledBack.finished,
+          won: rolledBack.won,
+          confirmedWon: rolledBack.won,
+          castActionState: "idle",
+          pendingTxHash: undefined,
+          pendingCast: null,
+          syncStatus: "CONFIRMED",
+          rollbackRequired: false,
+        }));
+        setCastingSlotId(null);
+      });
+    } catch {
+      startTransition(() => {
+        setState((currentState) => ({
+          ...currentState,
+          syncStatus: "ROLLBACK",
+          rollbackRequired: true,
+        }));
+      });
     }
   }
 
@@ -544,13 +797,34 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
                 <span className="pixel-font whitespace-nowrap">TURN {state.turn}</span>
               </div>
               <div
-                className={[
-                  "battle-hud-chip pixel-panel inline-flex min-h-[2.45rem] items-center px-3 py-1.5 text-[0.62rem] uppercase",
-                  hudSyncMeta.className,
-                ].join(" ")}
-                title={messages.battle.sync.statusCopy[state.syncStatus]}
+                className="relative"
+                onMouseEnter={() => setSyncTooltipOpen(true)}
+                onMouseLeave={() => setSyncTooltipOpen(false)}
+                onFocusCapture={() => setSyncTooltipOpen(true)}
+                onBlurCapture={() => setSyncTooltipOpen(false)}
               >
-                <span className="pixel-font whitespace-nowrap">{hudSyncMeta.label}</span>
+                <div
+                  tabIndex={0}
+                  aria-label={messages.battle.sync.lampTooltipLabel}
+                  className={[
+                    "battle-hud-chip pixel-panel inline-flex min-h-[2.45rem] items-center px-3 py-1.5 text-[0.62rem] uppercase outline-none",
+                    hudSyncMeta.className,
+                  ].join(" ")}
+                >
+                  <span className={["mr-2 inline-flex h-2.5 w-2.5 rounded-full", hudSyncMeta.lampClassName].join(" ")} />
+                  <span className="pixel-font whitespace-nowrap">{hudSyncMeta.label}</span>
+                </div>
+                {syncTooltipOpen ? (
+                  <div className="battle-sync-tooltip pixel-rounded-md pixel-panel absolute left-1/2 top-[calc(100%+10px)] z-[155] w-[min(20rem,42vw)] -translate-x-1/2 px-3 py-2 text-left text-[#fff8d1] shadow-[0_18px_32px_rgba(7,12,20,0.34)]">
+                    <p className="battle-row-tooltip-title pixel-font">{messages.battle.sync.lampTooltipLabel}</p>
+                    <p className="battle-row-tooltip-body pixel-font mt-1">{messages.battle.sync.lampCopy[hudLampState]}</p>
+                    {hudLampState === "SYNCING" && state.pendingTxHash ? (
+                      <p className="battle-row-tooltip-notice pixel-font mt-2">
+                        {messages.battle.sync.castPendingHint}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -596,11 +870,13 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
               >
                 <DiceBoard
                   dice={state.dice}
+                  carryoverDice={state.carryoverDice}
                   locked={state.locked}
                   rollCount={state.rollCount}
                   canDiceAction={canDiceAction}
                   isRollingVisual={state.diceActionState === "waiting"}
-                  isCasting={state.castActionState === "waiting"}
+                  isSubmittingCast={state.castActionState === "waiting"}
+                  isChainPending={!!state.pendingTxHash}
                   finished={state.finished}
                   onDiceAction={handleDiceAction}
                   onToggleLock={handleToggleLock}
@@ -619,7 +895,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
                 <ScoreBoard
                   state={state}
                   castingSlotId={castingSlotId}
-                  isCasting={state.castActionState === "waiting"}
+                  isCasting={state.castActionState === "waiting" || !!state.pendingTxHash}
                   castFx={castFx}
                   onCastSlot={handleCast}
                 />
@@ -654,6 +930,28 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
                 className="battle-modal-action pixel-button pixel-button-warning inline-flex min-h-[2.4rem] min-w-[6.2rem] items-center justify-center px-4 py-2 text-[0.62rem] uppercase text-[#fff6c8]"
               >
                 {locale === "zh-CN" ? "确认" : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {rollbackBlocked ? (
+        <div className="absolute inset-0 z-[140] flex items-center justify-center bg-[rgba(26,6,6,0.58)] backdrop-blur-[5px]">
+          <div className="pixel-rounded-lg pixel-panel w-[min(24rem,calc(100vw-2rem))] px-5 py-4 text-center text-[#fff6c8] shadow-[0_20px_38px_rgba(30,6,6,0.4)]">
+            <p className="battle-modal-title pixel-font text-[0.84rem] uppercase tracking-[0.12em] text-[#fff8d1]">
+              {messages.battle.sync.rollbackTitle}
+            </p>
+            <p className="battle-modal-copy pixel-font mt-3 text-[0.6rem] leading-[1.8] text-slate-100">
+              {messages.battle.sync.rollbackBody}
+            </p>
+            <div className="mt-5 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={handleRollbackBattle}
+                className="battle-modal-action pixel-button pixel-button-warning inline-flex min-h-[2.4rem] min-w-[10rem] items-center justify-center px-4 py-2 text-[0.62rem] uppercase text-[#fff6c8]"
+              >
+                {messages.battle.sync.rollbackAction}
               </button>
             </div>
           </div>

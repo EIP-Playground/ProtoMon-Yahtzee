@@ -37,6 +37,8 @@ export async function POST(request: Request) {
       ...session,
       currentDice: dice,
       rollCount: 1,
+      finalized: false,
+      finalizedProof: null,
     };
 
     await saveBackendGameSession(updatedSession);

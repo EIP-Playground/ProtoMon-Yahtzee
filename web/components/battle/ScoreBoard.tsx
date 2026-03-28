@@ -51,6 +51,7 @@ type RowTooltipState = {
   title: string;
   content: BattleScoreTooltipCopy;
   meta: (typeof BATTLE_SCORE_TOOLTIP_META)[keyof typeof BATTLE_SCORE_TOOLTIP_META];
+  notice?: string;
   anchorLeft: number;
   anchorTop: number;
   placement: "above" | "below";
@@ -322,6 +323,8 @@ export function ScoreBoard({
     content: BattleScoreTooltipCopy,
     meta: (typeof BATTLE_SCORE_TOOLTIP_META)[keyof typeof BATTLE_SCORE_TOOLTIP_META],
     target: HTMLElement,
+    notice?: string,
+    preferredPlacement?: "above" | "below",
   ) {
     const rect = target.getBoundingClientRect();
     const tooltipWidth = 272;
@@ -329,15 +332,18 @@ export function ScoreBoard({
     const gap = 10;
     const left = Math.max(
       edgePadding,
-      Math.min(rect.right - tooltipWidth, window.innerWidth - tooltipWidth - edgePadding),
+      Math.min(rect.right + gap, window.innerWidth - tooltipWidth - edgePadding),
     );
-    const prefersBelow = rect.top < 164;
+    const prefersBelow = preferredPlacement
+      ? preferredPlacement === "below"
+      : rect.top < 164;
 
     setRowTooltip({
       key,
       title,
       content,
       meta,
+      notice,
       anchorLeft: left,
       anchorTop: prefersBelow ? rect.bottom + gap : rect.top - gap,
       placement: prefersBelow ? "below" : "above",
@@ -351,6 +357,20 @@ export function ScoreBoard({
   const tooltipGroups =
     rowTooltip?.meta.exampleGroups ??
     (rowTooltip?.meta.iconDiceValues ? [rowTooltip.meta.iconDiceValues] : []);
+
+  function getRowBlockNotice(used: boolean) {
+    if (used || state.finished || !state.dice) {
+      return undefined;
+    }
+
+    if (isCasting) {
+      return state.pendingTxHash
+        ? messages.battle.sync.castPendingHint
+        : messages.battle.sync.castSubmittingHint;
+    }
+
+    return undefined;
+  }
 
   return (
     <aside className="battle-command-panel pixel-rounded-lg flex h-full flex-col overflow-hidden border-[4px] border-[#545250] bg-[rgba(135,132,129,0.88)] p-[9px] shadow-[0_14px_24px_rgba(10,15,22,0.18)]">
@@ -383,6 +403,8 @@ export function ScoreBoard({
                     messages.battle.score.slotHints[row.slot.key],
                     BATTLE_SCORE_TOOLTIP_META[row.slot.key],
                     event.currentTarget,
+                    getRowBlockNotice(row.used),
+                    row.slot.id < 5 ? "below" : undefined,
                   )
                 }
                 onMouseLeave={() => closeRowTooltip(tooltipKey)}
@@ -394,6 +416,8 @@ export function ScoreBoard({
                     messages.battle.score.slotHints[row.slot.key],
                     BATTLE_SCORE_TOOLTIP_META[row.slot.key],
                     target,
+                    getRowBlockNotice(row.used),
+                    row.slot.id < 5 ? "below" : undefined,
                   );
                 }}
                 onBlurCapture={() => closeRowTooltip(tooltipKey)}
@@ -524,6 +548,7 @@ export function ScoreBoard({
                     messages.battle.score.slotHints[row.slot.key],
                     BATTLE_SCORE_TOOLTIP_META[row.slot.key],
                     event.currentTarget,
+                    getRowBlockNotice(row.used),
                   )
                 }
                 onMouseLeave={() => closeRowTooltip(tooltipKey)}
@@ -535,6 +560,7 @@ export function ScoreBoard({
                     messages.battle.score.slotHints[row.slot.key],
                     BATTLE_SCORE_TOOLTIP_META[row.slot.key],
                     target,
+                    getRowBlockNotice(row.used),
                   );
                 }}
                 onBlurCapture={() => closeRowTooltip(tooltipKey)}
@@ -623,6 +649,9 @@ export function ScoreBoard({
                     {tooltipFixedDamageLabel(locale, rowTooltip.meta.fixedDamage)} DMG
                   </span>
                 </div>
+              ) : null}
+              {rowTooltip.notice ? (
+                <p className="battle-row-tooltip-notice pixel-font mt-2">{rowTooltip.notice}</p>
               ) : null}
               {tooltipGroups.length > 0 ? (
                 <div className="mt-2.5">

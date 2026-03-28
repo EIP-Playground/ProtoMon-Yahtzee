@@ -46,11 +46,13 @@ function createPreviewDiceFaces(): DiceArray {
 
 type DiceBoardProps = {
   dice: DiceArray | null;
+  carryoverDice: DiceArray | null;
   locked: LockedDice;
   rollCount: number;
   canDiceAction: boolean;
   isRollingVisual: boolean;
-  isCasting: boolean;
+  isSubmittingCast: boolean;
+  isChainPending: boolean;
   finished: boolean;
   onDiceAction: () => void;
   onToggleLock: (index: number) => void;
@@ -58,11 +60,13 @@ type DiceBoardProps = {
 
 export function DiceBoard({
   dice,
+  carryoverDice,
   locked,
   rollCount,
   canDiceAction,
   isRollingVisual,
-  isCasting,
+  isSubmittingCast,
+  isChainPending,
   finished,
   onDiceAction,
   onToggleLock,
@@ -78,6 +82,10 @@ export function DiceBoard({
       return;
     }
 
+    // Seed the first animation frame immediately so locked dice never flash
+    // to a random face before the interval starts ticking.
+    setAnimatedValues(createAnimatedDiceFrame(dice, locked));
+
     const intervalId = window.setInterval(() => {
       setAnimatedValues(createAnimatedDiceFrame(dice, locked));
     }, 90);
@@ -87,14 +95,18 @@ export function DiceBoard({
     };
   }, [dice, isRollingVisual, locked]);
 
-  const values = isRollingVisual ? animatedValues : dice ?? previewValues;
+  const displayDice = dice ?? carryoverDice;
   const statusCopy = useMemo(() => {
     if (finished) {
       return messages.battle.dice.battleFinished;
     }
 
-    if (isCasting) {
+    if (isSubmittingCast) {
       return messages.battle.dice.syncingCast;
+    }
+
+    if (isChainPending) {
+      return messages.battle.dice.pendingChain;
     }
 
     if (isRollingVisual) {
@@ -110,7 +122,7 @@ export function DiceBoard({
     }
 
     return messages.battle.dice.noRerolls;
-  }, [dice, finished, isCasting, isRollingVisual, messages.battle.dice, rollCount]);
+  }, [dice, finished, isChainPending, isRollingVisual, isSubmittingCast, messages.battle.dice, rollCount]);
   const remainingRolls = Math.max(0, 3 - rollCount);
   const rollLabel = `${messages.battle.dice.rollButton}(${remainingRolls}/3)`;
 
@@ -124,10 +136,15 @@ export function DiceBoard({
         />
 
         {DIE_POSITIONS.map((position, index) => {
-          const value = values[index];
+          const value =
+            isRollingVisual && dice && locked[index]
+              ? dice[index]
+              : isRollingVisual
+                ? animatedValues[index]
+                : (displayDice ?? previewValues)[index];
           const isKnown = value >= 1 && value <= 6;
           const faceSrc = getDiceFaceSrc(value);
-          const disabled = !dice || isCasting || finished || isRollingVisual;
+          const disabled = !dice || isSubmittingCast || finished || isRollingVisual;
 
           return (
             <button
@@ -162,7 +179,7 @@ export function DiceBoard({
         <button
           type="button"
           onClick={onDiceAction}
-          disabled={!canDiceAction || finished || isRollingVisual || isCasting}
+          disabled={!canDiceAction || finished || isRollingVisual || isSubmittingCast}
           title={statusCopy}
           aria-label={rollLabel}
           className="pixel-cta-button inline-flex min-h-[54px] min-w-[208px] items-center justify-center gap-3 px-5 py-3 text-[0.88rem] uppercase tracking-[0.16em] text-white disabled:cursor-not-allowed disabled:opacity-55"

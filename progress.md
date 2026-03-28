@@ -653,3 +653,35 @@ Original prompt: PLEASE IMPLEMENT THIS PLAN:
 - `cd web && rtk pnpm vitest run tests/battle-client.test.tsx tests/game-logic.test.ts` passed.
 - `cd web && rtk pnpm lint` passed with only existing `@next/next/no-img-element` warnings.
 - `cd web && rtk pnpm build` could not be revalidated in this environment because a stale `next build` process lock remained and escalation to inspect/clear it was not approved.
+
+## 2026-03-28 Stage 1 Sync Stability + Local Redis Pass
+
+- Fixed the Stage 1 optimistic-sync overwrite bug where a delayed `TurnPlayed` confirmation from the previous turn could overwrite the active next-round dice UI.
+- Added `pendingCast` state to the battle client/store so receipt reconciliation now compares against a stored optimistic snapshot instead of stale closure state.
+- Changed confirmation reconciliation to merge into the latest live battle state:
+  - confirmed anchor fields update from chain
+  - active round UI is preserved if the player has already started the next round
+- Tightened rollback semantics so post-tx mismatches and confirmation failures always enter `ROLLBACK_REQUIRED` behavior:
+  - red sync lamp
+  - blocking rollback modal
+  - dice/cast interaction blocked until rollback
+- Raised rollback modal priority above finish overlays and made persisted `ROLLBACK` snapshots restore into a blocked rollback state.
+- Added local Redis development support in `web/lib/server/redis.ts`:
+  - prefer `REDIS_URL`
+  - fall back to Upstash REST envs
+- Added `ioredis` as a direct web dependency for local Redis/Valkey TCP connections.
+- Updated `.env.example` to document `REDIS_URL` precedence for local development.
+- Expanded tests:
+  - battle client keeps second-round dice visible when previous-turn receipt resolves later
+  - battle client shows rollback modal on optimistic mismatch
+  - game API confirms and rollback routes now have explicit coverage
+
+## Validation
+
+- `cd web && rtk pnpm vitest run tests/battle-client.test.tsx tests/game-api.test.ts tests/game-logic.test.ts` passed.
+- `cd web && rtk pnpm lint` passed with existing `@next/next/no-img-element` warnings only.
+- `cd web && rtk pnpm build` passed.
+
+## Notes
+
+- `develop-web-game` Playwright validation is still blocked here because the local runtime does not provide the `playwright` package in `web/` (`require.resolve("playwright")` fails).

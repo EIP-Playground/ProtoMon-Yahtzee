@@ -33,6 +33,14 @@ export async function POST(request: Request) {
       );
     }
 
+    if (session.pendingChainTxHash) {
+      throw new ApiRouteError(
+        409,
+        "PENDING_CHAIN_CONFIRMATION",
+        "The previous turn is still waiting for on-chain confirmation.",
+      );
+    }
+
     if (session.finalized) {
       if (session.finalizedProof) {
         return Response.json(session.finalizedProof);

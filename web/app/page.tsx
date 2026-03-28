@@ -8,8 +8,12 @@ import { BackToTopButton } from "@/components/home/BackToTopButton";
 import { HomeLanding } from "@/components/home/HomeLanding";
 import { LoadingPage } from "@/components/loading/LoadingPage";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { getConnectedSenderAddress } from "@/lib/chain/gameContract";
-import { createAndStartBattleSession } from "@/lib/game/session";
+import {
+  getConnectedSenderAddress,
+  startGameOnChain,
+  waitForGameStarted,
+} from "@/lib/chain/gameContract";
+import { createBattleSession } from "@/lib/game/session";
 import { preloadBattleAssets } from "@/lib/ui/battleAssets";
 import { LOADING_MIN_CREATE_DURATION_MS } from "@/lib/ui/loading";
 
@@ -31,6 +35,7 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNavigating, startTransition] = useTransition();
   const [isCreating, setIsCreating] = useState(false);
+  const [showCreateLoading, setShowCreateLoading] = useState(false);
   const [createReady, setCreateReady] = useState(false);
   const [pendingGameId, setPendingGameId] = useState<string | null>(null);
   const [entryLoadingState, setEntryLoadingState] = useState<"checking" | "loading" | "ready">(
@@ -73,30 +78,35 @@ export default function Home() {
   async function handleStartBattle() {
     setErrorMessage(null);
     setIsCreating(true);
+    setShowCreateLoading(false);
     setCreateReady(false);
     setPendingGameId(null);
 
-    const startedAt = performance.now();
-    const battleAssetsPromise = preloadBattleAssets();
-
     try {
       const sender = await getConnectedSenderAddress();
-      const sessionPromise = createAndStartBattleSession({
+      const session = await createBattleSession({
         player: sender,
         rewardRecipient: sender,
         bossId: 1,
       });
-      const session = await sessionPromise;
+      const { txHash } = await startGameOnChain({
+        gameId: session.gameId,
+        rewardRecipient: session.rewardRecipient,
+        bossId: session.bossId,
+      });
 
-      const elapsed = performance.now() - startedAt;
-      const remaining = Math.max(0, LOADING_MIN_CREATE_DURATION_MS - elapsed);
+      setShowCreateLoading(true);
+      const battleAssetsPromise = preloadBattleAssets();
+      const chainStartedPromise = waitForGameStarted(txHash);
+      const minLoadingPromise = wait(LOADING_MIN_CREATE_DURATION_MS);
 
-      await Promise.all([battleAssetsPromise, remaining > 0 ? wait(remaining) : Promise.resolve()]);
+      await Promise.all([battleAssetsPromise, chainStartedPromise, minLoadingPromise]);
 
       setPendingGameId(session.gameId);
       setCreateReady(true);
     } catch (error) {
       setIsCreating(false);
+      setShowCreateLoading(false);
       setCreateReady(false);
       setPendingGameId(null);
       setErrorMessage(error instanceof Error ? error.message : messages.home.errorCreateGame);
@@ -133,7 +143,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#070d16]">
-      {isCreating || isNavigating ? (
+      {showCreateLoading || isNavigating ? (
         <LoadingPage
           mode="pending"
           duration={LOADING_MIN_CREATE_DURATION_MS}

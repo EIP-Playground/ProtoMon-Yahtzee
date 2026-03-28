@@ -1,4 +1,4 @@
-import { saveBackendGameSession, getBackendGameSession } from "@/lib/server/gameSession";
+import { getBackendGameSession, saveBackendGameSession } from "@/lib/server/gameSession";
 import {
   ApiRouteError,
   handleRouteError,
@@ -8,15 +8,15 @@ import {
   requireIntegerField,
   requireTxHashField,
 } from "@/lib/server/http";
-import type { AdvanceRoundResult } from "@/types/game";
+import type { ConfirmRoundResult } from "@/types/game";
 
 export async function POST(request: Request) {
   try {
     const body = await readJsonObject(request);
     const gameId = requireGameIdField(body, "gameId");
     const player = requireAddressField(body, "player");
-    const nextTurn = requireIntegerField(body, "nextTurn");
     const pendingTxHash = requireTxHashField(body, "pendingTxHash");
+    const confirmedTurn = requireIntegerField(body, "confirmedTurn");
     const session = await getBackendGameSession(gameId);
 
     if (!session) {
@@ -27,47 +27,26 @@ export async function POST(request: Request) {
       throw new ApiRouteError(409, "PLAYER_MISMATCH", "Player does not match the game session.");
     }
 
-    if (session.rollCount < 1) {
-      throw new ApiRouteError(409, "ROLL_NOT_STARTED", "The current round has not started yet.");
-    }
-
-    if (session.pendingChainTxHash) {
+    if (session.pendingChainTxHash !== pendingTxHash) {
       throw new ApiRouteError(
         409,
-        "PENDING_CHAIN_CONFIRMATION",
-        "The game session already has a pending on-chain turn.",
+        "PENDING_TX_MISMATCH",
+        "pendingTxHash does not match the session pending transaction.",
       );
-    }
-
-    if (nextTurn !== session.turn + 1) {
-      throw new ApiRouteError(
-        409,
-        "INVALID_NEXT_TURN",
-        "nextTurn must advance exactly one round.",
-      );
-    }
-
-    if (nextTurn < 2 || nextTurn > 13) {
-      throw new ApiRouteError(400, "INVALID_NEXT_TURN", "nextTurn must stay within 2..13.");
     }
 
     const updatedSession = {
       ...session,
-      turn: nextTurn,
-      rollCount: 0,
-      currentDice: [0, 0, 0, 0, 0] as [0, 0, 0, 0, 0],
-      finalized: false,
-      finalizedProof: null,
-      pendingChainTxHash: pendingTxHash,
-      pendingTurn: nextTurn,
+      turn: confirmedTurn,
+      pendingChainTxHash: null,
+      pendingTurn: null,
     };
 
     await saveBackendGameSession(updatedSession);
 
-    const response: AdvanceRoundResult = {
+    const response: ConfirmRoundResult = {
       gameId: updatedSession.gameId,
       turn: updatedSession.turn,
-      rollCount: updatedSession.rollCount,
     };
 
     return Response.json(response);
