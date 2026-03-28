@@ -8,8 +8,14 @@ import { BackToTopButton } from "@/components/home/BackToTopButton";
 import { HomeLanding } from "@/components/home/HomeLanding";
 import { LoadingPage } from "@/components/loading/LoadingPage";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { createGameSession } from "@/lib/api/backend";
-import { DEMO_PLAYER, DEMO_REWARD_RECIPIENT } from "@/lib/game/demo";
+import { useSmartAccount } from "@/components/providers/SmartAccountProvider";
+import {
+  getConnectedSenderAddress,
+  startGameOnChain,
+  waitForGameStarted,
+} from "@/lib/chain/gameContract";
+import { createBattleSession } from "@/lib/game/session";
+import { preloadBattleAssets } from "@/lib/ui/battleAssets";
 import { LOADING_MIN_CREATE_DURATION_MS } from "@/lib/ui/loading";
 
 const ENTRY_LOADING_KEY = "protomon:entry-loading:seen";
@@ -27,9 +33,11 @@ function wait(ms: number) {
 export default function Home() {
   const router = useRouter();
   const { messages } = useLocale();
+  const { isAAEnabled, setupSmartAccount, smartAccountClient } = useSmartAccount();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNavigating, startTransition] = useTransition();
   const [isCreating, setIsCreating] = useState(false);
+  const [showCreateLoading, setShowCreateLoading] = useState(false);
   const [createReady, setCreateReady] = useState(false);
   const [pendingGameId, setPendingGameId] = useState<string | null>(null);
   const [entryLoadingState, setEntryLoadingState] = useState<"checking" | "loading" | "ready">(
@@ -72,29 +80,75 @@ export default function Home() {
   async function handleStartBattle() {
     setErrorMessage(null);
     setIsCreating(true);
+    setShowCreateLoading(false);
     setCreateReady(false);
     setPendingGameId(null);
 
-    const startedAt = performance.now();
-
     try {
-      const session = await createGameSession({
-        player: DEMO_PLAYER,
-        rewardRecipient: DEMO_REWARD_RECIPIENT,
+      // Get the user's real EOA address (for rewardRecipient and fallback sender)
+      const eoaAddress = await getConnectedSenderAddress();
+
+      let player = eoaAddress;
+      let aaClient: unknown = undefined;
+
+      if (isAAEnabled) {
+        // AA mode: create ephemeral signer + Safe Smart Account
+        const safeAddress = await setupSmartAccount();
+        player = safeAddress;
+        aaClient = smartAccountClient;
+
+        // Re-read the client since setupSmartAccount triggers a state update
+        // and the closure still holds the old reference. Dynamic import fallback:
+        if (!aaClient) {
+          const { getOrCreateEphemeralKey, setupGaslessAccount } =
+            await import("@/lib/aa/smartAccount");
+          const privKey = getOrCreateEphemeralKey();
+          const result = await setupGaslessAccount(privKey);
+          player = result.safeAddress;
+          aaClient = result.smartAccountClient;
+        }
+      }
+
+      const session = await createBattleSession({
+        player,
+        rewardRecipient: eoaAddress,
         bossId: 1,
       });
 
-      const elapsed = performance.now() - startedAt;
-      const remaining = Math.max(0, LOADING_MIN_CREATE_DURATION_MS - elapsed);
+      setShowCreateLoading(true);
+      const battleAssetsPromise = preloadBattleAssets();
+      const minLoadingPromise = wait(LOADING_MIN_CREATE_DURATION_MS);
 
-      if (remaining > 0) {
-        await wait(remaining);
+      const { txHash, isAA } = await startGameOnChain(
+        {
+          gameId: session.gameId,
+          rewardRecipient: session.rewardRecipient,
+          bossId: session.bossId,
+        },
+        aaClient,
+      );
+
+      // If AA is enabled, bind the ephemeral key to this gameId for battle page restore
+      if (isAAEnabled) {
+        try {
+          const { getOrCreateEphemeralKey, bindEphemeralKeyToGame } =
+            await import("@/lib/aa/smartAccount");
+          const privKey = getOrCreateEphemeralKey();
+          bindEphemeralKeyToGame(session.gameId, privKey);
+        } catch {
+          // Non-critical: battle page can still work if restore fails
+        }
       }
+
+      const chainStartedPromise = waitForGameStarted(txHash, isAA);
+
+      await Promise.all([battleAssetsPromise, chainStartedPromise, minLoadingPromise]);
 
       setPendingGameId(session.gameId);
       setCreateReady(true);
     } catch (error) {
       setIsCreating(false);
+      setShowCreateLoading(false);
       setCreateReady(false);
       setPendingGameId(null);
       setErrorMessage(error instanceof Error ? error.message : messages.home.errorCreateGame);
@@ -131,7 +185,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#070d16]">
-      {isCreating || isNavigating ? (
+      {showCreateLoading || isNavigating ? (
         <LoadingPage
           mode="pending"
           duration={LOADING_MIN_CREATE_DURATION_MS}
@@ -149,7 +203,7 @@ export default function Home() {
         errorMessage={errorMessage}
         isBusy={isCreating || isNavigating}
         onStartBattle={handleStartBattle}
-        heroTopControls={<HomeWalletHud />}
+        heroTopControls={isCreating || isNavigating ? null : <HomeWalletHud />}
       />
       <BackToTopButton visible={showBackToTop} />
     </main>

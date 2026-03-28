@@ -8,6 +8,26 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "zh-CN";
 export const LOCALE_STORAGE_KEY = "protomon:locale";
 
+export type BattleScoreTooltipCopy = {
+  summary: string;
+  detail?: string;
+  exampleLabel?: string;
+};
+
+type BattleSyncLampState = "READY" | "SYNCING" | "ERROR" | "ROLLBACK_REQUIRED";
+
+type BattleFinishMessages = {
+  victoryTitle: string;
+  victoryBody: string;
+  victoryReturn: string;
+  victoryStay: string;
+  defeatTitle: string;
+  defeatBody: string;
+  defeatRetry: string;
+  defeatReturn: string;
+  retrying: string;
+};
+
 type LocaleMessages = {
   common: {
     language: string;
@@ -110,6 +130,7 @@ type LocaleMessages = {
       castingButton: string;
       battleFinished: string;
       syncingCast: string;
+      pendingChain: string;
       rolling: string;
       clickToStart: string;
       lockThenRoll: string;
@@ -143,6 +164,8 @@ type LocaleMessages = {
       cast: string;
       damage: (amount: number) => string;
       upperBonusTag: (bonusDamage: number) => string;
+      rewardHint: BattleScoreTooltipCopy;
+      slotHints: Record<SlotLabel, BattleScoreTooltipCopy>;
       slotTitles: Record<SlotLabel, string>;
     };
     protomon: {
@@ -158,11 +181,19 @@ type LocaleMessages = {
       eyebrow: string;
       description: string;
     };
-    sync: {
-      eyebrow: string;
-      title: string;
-      statusCopy: Record<SyncStatus, string>;
-      pendingTxAssigned: (hash: string) => string;
+    finish: BattleFinishMessages;
+      sync: {
+        eyebrow: string;
+        title: string;
+        statusCopy: Record<SyncStatus, string>;
+        lampCopy: Record<BattleSyncLampState, string>;
+        lampTooltipLabel: string;
+        castPendingHint: string;
+        castSubmittingHint: string;
+        rollbackTitle: string;
+        rollbackBody: string;
+        rollbackAction: string;
+        pendingTxAssigned: (hash: string) => string;
       pendingTxMissing: string;
       debug: string;
       redisKey: (key: string) => string;
@@ -213,7 +244,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       createMessages: [
         "正在锻造挑战房间…",
         "向 Upstash 发出开局请求…",
-        "绑定 Demo Player 会话…",
+        "绑定链上战斗会话…",
         "注入 Boss 初始状态…",
         "为你展开第一场试炼…",
       ],
@@ -261,7 +292,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       footerCopyright: "© 2026 EIP-Playground ProtoMon",
       footerLeftLinks: ["GitHub", "X"],
       footerRightLinks: ["Team"],
-      errorCreateGame: "创建 Demo 对战失败。",
+      errorCreateGame: "创建战斗房间失败。",
     },
     battle: {
       boardEyebrow: "经典战斗面板",
@@ -271,7 +302,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       gameIdLabel: "gameId",
       restoringSnapshot: "正在恢复本地战斗快照…",
       restoredSnapshot: "已从当前标签页恢复本地战斗快照。",
-      initialStatus: "第一次掷骰由后端权威生成；本阶段 CAST 仍为本地结算。",
+      initialStatus: "第一次掷骰由后端权威生成；每次释放都会在链上完成结算。",
       requestingDice: "正在向云端发牌器请求权威骰面…",
       diceReceivedFirst: "已收到权威骰面。锁定想保留的骰子，然后再次按 ROLL。",
       diceReceivedReroll: "后端重掷已同步。已锁定的骰子会继续高亮，方便下一次决策。",
@@ -288,8 +319,8 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           : "本地 CAST 已应用，但后端推进下一轮失败。",
       boss: {
         eyebrow: "Boss",
-        name: "哥布林黑客",
-        description: "经典快艇骰子战斗包装。击倒 150 HP 的哥布林黑客。",
+        name: "哥布林机巧萨满",
+        description: "经典快艇骰子战斗包装。击倒 150 HP 的哥布林机巧萨满。",
         turn: "回合",
         localHp: "本地 HP",
         chainHp: "链上 HP",
@@ -306,6 +337,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         castingButton: "正在施法",
         battleFinished: "战斗结束",
         syncingCast: "正在同步本地施法结果",
+        pendingChain: "上一回合链上确认中，可继续掷骰",
         rolling: "云端骰面生成中…",
         clickToStart: "点击 ROLL 开始当前回合",
         lockThenRoll: "锁定想保留的骰子，再按 ROLL",
@@ -340,13 +372,85 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         cast: "CAST",
         damage: (amount) => `${amount} dmg`,
         upperBonusTag: (bonusDamage) => `+${bonusDamage} 上半区奖励`,
+        rewardHint: {
+          summary: "上半区累计达到 63 分时，额外获得 35 点奖励伤害。",
+          detail: "当前累计一旦开始增长，这里就会显示奖励进度。",
+          exampleLabel: "上半区元素",
+        },
+        slotHints: {
+          Upper1: {
+            summary: "统计所有水元素骰面，累计成当前水系伤害。",
+            detail: "该行只吃水元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper2: {
+            summary: "统计所有金元素骰面，累计成当前金系伤害。",
+            detail: "该行只吃金元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper3: {
+            summary: "统计所有土元素骰面，累计成当前土系伤害。",
+            detail: "该行只吃土元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper4: {
+            summary: "统计所有风元素骰面，累计成当前风系伤害。",
+            detail: "该行只吃风元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper5: {
+            summary: "统计所有木元素骰面，累计成当前木系伤害。",
+            detail: "该行只吃木元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          Upper6: {
+            summary: "统计所有火元素骰面，累计成当前火系伤害。",
+            detail: "该行只吃火元素，出现几枚就结算几枚。",
+            exampleLabel: "计入元素",
+          },
+          ThreeKind: {
+            summary: "至少三枚相同元素即可触发三条。",
+            detail: "伤害会结算 5 枚骰面的总和，不只计算那三枚相同元素。",
+            exampleLabel: "触发示例",
+          },
+          FourKind: {
+            summary: "至少四枚相同元素即可触发四条。",
+            detail: "伤害会结算 5 枚骰面的总和，剩余那一枚也会一起算进去。",
+            exampleLabel: "触发示例",
+          },
+          FullHouse: {
+            summary: "三同元素 + 两同元素时触发葫芦。",
+            detail: "固定伤害 25，不再按骰面总和追加。",
+            exampleLabel: "触发示例",
+          },
+          SmallStraight: {
+            summary: "任意四连元素序列都会触发小顺。",
+            detail: "固定伤害 30。下面用当前六行天命值举例展示可用连序。",
+            exampleLabel: "可用连序",
+          },
+          LargeStraight: {
+            summary: "完整五连元素序列会触发大顺。",
+            detail: "固定伤害 40。下面用当前六行天命值举例展示可用连序。",
+            exampleLabel: "可用连序",
+          },
+          Yahtzee: {
+            summary: "五枚相同元素时触发快艇终结。",
+            detail: "固定伤害 50，是当前最强的单次牌型伤害。",
+            exampleLabel: "触发示例",
+          },
+          Chance: {
+            summary: "机会会结算全部 5 枚骰面的总和。",
+            detail: "没有牌型门槛，只要你想把当前总和直接打出去，就可以用它。",
+            exampleLabel: "示例骰面",
+          },
+        },
         slotTitles: {
-          Upper1: "💧 水 / 一点",
-          Upper2: "⚙️ 金 / 两点",
-          Upper3: "🪨 土 / 三点",
-          Upper4: "💨 风 / 四点",
-          Upper5: "🌿 木 / 五点",
-          Upper6: "🔥 火 / 六点",
+          Upper1: "水 / 一点",
+          Upper2: "金 / 两点",
+          Upper3: "土 / 三点",
+          Upper4: "风 / 四点",
+          Upper5: "木 / 五点",
+          Upper6: "火 / 六点",
           ThreeKind: "三条",
           FourKind: "四条",
           FullHouse: "葫芦",
@@ -367,7 +471,18 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       },
       session: {
         eyebrow: "会话网关",
-        description: "Demo 模式。钱包与 session key 暂时旁路，当前只接后端权威骰面与本地结算。",
+        description: "当前版本已接入钱包与链上结算；session key / 4337 会在下一阶段替换普通 sender。",
+      },
+      finish: {
+        victoryTitle: "胜利",
+        victoryBody: "哥布林机巧萨满已被击倒。本场 ProtoMon 试炼完成。",
+        victoryReturn: "返回大厅",
+        victoryStay: "继续查看",
+        defeatTitle: "失败",
+        defeatBody: "13 个槽位已经全部耗尽。要立即锻造新的战斗房间吗？",
+        defeatRetry: "重新开战",
+        defeatReturn: "返回大厅",
+        retrying: "房间锻造中…",
       },
       sync: {
         eyebrow: "同步",
@@ -379,6 +494,18 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           RETRYABLE_FAIL: "提交失败，可重试。",
           ROLLBACK: "链上结果与本地不一致，已回滚。",
         },
+        lampCopy: {
+          READY: "链上状态已确认，本地没有领先回合。",
+          SYNCING: "本地或后端已经领先链上，正在等待链上确认。",
+          ERROR: "本次同步出现异常，当前回合需要人工处理。",
+          ROLLBACK_REQUIRED: "链上结果与本地乐观状态不一致，需要回滚到最新链上确认态。",
+        },
+        lampTooltipLabel: "同步状态说明",
+        castPendingHint: "上一回合仍在同步中，需等待确认完成后才能释放下一次技能。",
+        castSubmittingHint: "当前施法正在提交中，等待本次交易发出后才能继续操作。",
+        rollbackTitle: "空间扭曲",
+        rollbackBody: "检测到链上结果与本地乐观状态不一致。请回滚到最新链上确认态后继续。",
+        rollbackAction: "空间扭曲：回滚",
         pendingTxAssigned: (hash) => `pendingTxHash: ${hash}`,
         pendingTxMissing: "pendingTxHash: 尚未分配",
         debug: "调试",
@@ -438,7 +565,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       createMessages: [
         "Forging the battle room…",
         "Sending the start request to Upstash…",
-        "Binding the demo player session…",
+        "Binding the on-chain battle session…",
         "Seeding the boss state…",
         "Opening the first trial…",
       ],
@@ -486,7 +613,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       footerCopyright: "© 2026 EIP-Playground ProtoMon",
       footerLeftLinks: ["GitHub", "X"],
       footerRightLinks: ["Team"],
-      errorCreateGame: "Failed to create a demo game.",
+      errorCreateGame: "Failed to create the battle room.",
     },
     battle: {
       boardEyebrow: "Classic Battle Board",
@@ -497,7 +624,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       gameIdLabel: "gameId",
       restoringSnapshot: "Restoring local battle snapshot…",
       restoredSnapshot: "Recovered the local battle snapshot from this tab.",
-      initialStatus: "First roll uses backend authority. CAST stays local-only in this phase.",
+      initialStatus: "The first roll uses backend authority. Every cast settles on chain.",
       requestingDice: "Requesting authoritative dice from the cloud dealer…",
       diceReceivedFirst: "Authoritative dice received. Lock what you want to keep, then press ROLL again.",
       diceReceivedReroll:
@@ -516,8 +643,8 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           : "Local CAST applied, but backend round advance failed.",
       boss: {
         eyebrow: "Boss",
-        name: "Goblin Hacker",
-        description: "Classic Yahtzee battle wrapper. Bring down the 150 HP Goblin Hacker.",
+        name: "Goblin Gear Shaman",
+        description: "Classic Yahtzee battle wrapper. Bring down the 150 HP Goblin Gear Shaman.",
         turn: "Turn",
         localHp: "Local HP",
         chainHp: "Chain HP",
@@ -534,6 +661,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         castingButton: "Casting…",
         battleFinished: "Battle finished",
         syncingCast: "Syncing local cast result",
+        pendingChain: "Previous turn is still confirming on chain. You can keep rolling.",
         rolling: "Rolling authoritative dice…",
         clickToStart: "Press ROLL to start this turn",
         lockThenRoll: "Lock the dice you want to keep, then press ROLL",
@@ -568,13 +696,85 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         cast: "CAST",
         damage: (amount) => `${amount} dmg`,
         upperBonusTag: (bonusDamage) => `+${bonusDamage} upper bonus`,
+        rewardHint: {
+          summary: "Reach 63 points in the upper section to unlock +35 bonus damage.",
+          detail: "As soon as the subtotal starts climbing, this row will show the reward progress.",
+          exampleLabel: "Upper elements",
+        },
+        slotHints: {
+          Upper1: {
+            summary: "Convert every water face into current water damage.",
+            detail: "Only water faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper2: {
+            summary: "Convert every metal face into current metal damage.",
+            detail: "Only metal faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper3: {
+            summary: "Convert every earth face into current earth damage.",
+            detail: "Only earth faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper4: {
+            summary: "Convert every air face into current air damage.",
+            detail: "Only air faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper5: {
+            summary: "Convert every wood face into current wood damage.",
+            detail: "Only wood faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          Upper6: {
+            summary: "Convert every fire face into current fire damage.",
+            detail: "Only fire faces count on this row. Every matching die is added in.",
+            exampleLabel: "Counted faces",
+          },
+          ThreeKind: {
+            summary: "Three of a kind triggers this cast.",
+            detail: "The damage is the sum of all 5 dice, not just the matching three.",
+            exampleLabel: "Trigger example",
+          },
+          FourKind: {
+            summary: "Four of a kind triggers this cast.",
+            detail: "The damage is the sum of all 5 dice, so the leftover die is counted too.",
+            exampleLabel: "Trigger example",
+          },
+          FullHouse: {
+            summary: "Three of one face plus two of another triggers Full House.",
+            detail: "This cast deals a fixed 25 damage.",
+            exampleLabel: "Trigger example",
+          },
+          SmallStraight: {
+            summary: "Any four-step consecutive sequence triggers Small Straight.",
+            detail: "This cast deals a fixed 30 damage. The examples below use the current destiny-line ordering.",
+            exampleLabel: "Valid sequences",
+          },
+          LargeStraight: {
+            summary: "Any five-step consecutive sequence triggers Large Straight.",
+            detail: "This cast deals a fixed 40 damage. The examples below use the current destiny-line ordering.",
+            exampleLabel: "Valid sequences",
+          },
+          Yahtzee: {
+            summary: "Five matching faces unleash the Yahtzee finisher.",
+            detail: "This cast deals a fixed 50 damage.",
+            exampleLabel: "Trigger example",
+          },
+          Chance: {
+            summary: "Chance spends the total of all 5 dice as raw damage.",
+            detail: "There is no pattern gate. Use it when the current total is worth cashing out.",
+            exampleLabel: "Example dice",
+          },
+        },
         slotTitles: {
-          Upper1: "💧 Water / Ones",
-          Upper2: "⚙️ Metal / Twos",
-          Upper3: "🪨 Earth / Threes",
-          Upper4: "💨 Air / Fours",
-          Upper5: "🌿 Wood / Fives",
-          Upper6: "🔥 Fire / Sixes",
+          Upper1: "Water / Ones",
+          Upper2: "Metal / Twos",
+          Upper3: "Earth / Threes",
+          Upper4: "Air / Fours",
+          Upper5: "Wood / Fives",
+          Upper6: "Fire / Sixes",
           ThreeKind: "Triple Strike",
           FourKind: "Quad Breaker",
           FullHouse: "Full House",
@@ -596,7 +796,18 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       session: {
         eyebrow: "Session Gate",
         description:
-          "Demo mode. Wallet and session-key plumbing are bypassed for now. This build only wires backend-authoritative dice with local resolution.",
+          "Wallet-linked on-chain settlement is live. Session-key / 4337 automation lands in the next phase.",
+      },
+      finish: {
+        victoryTitle: "Victory",
+        victoryBody: "Goblin Gear Shaman is down. This ProtoMon trial is complete.",
+        victoryReturn: "Return to Lobby",
+        victoryStay: "Keep Viewing",
+        defeatTitle: "Defeat",
+        defeatBody: "All 13 slots are exhausted. Forge a fresh battle room?",
+        defeatRetry: "Retry in New Room",
+        defeatReturn: "Return to Lobby",
+        retrying: "Forging room…",
       },
       sync: {
         eyebrow: "Sync",
@@ -608,6 +819,18 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           RETRYABLE_FAIL: "Submission failed and can be retried.",
           ROLLBACK: "Chain result mismatched local state and was rolled back.",
         },
+        lampCopy: {
+          READY: "The on-chain state is confirmed and the local board is not ahead.",
+          SYNCING: "The local or backend state is ahead of chain confirmation.",
+          ERROR: "This sync step failed before a rollback was required.",
+          ROLLBACK_REQUIRED: "The on-chain result diverged from the optimistic local state and must be rolled back.",
+        },
+        lampTooltipLabel: "Sync status details",
+        castPendingHint: "The previous turn is still syncing on chain. Wait for confirmation before casting the next skill.",
+        castSubmittingHint: "The current cast is still being submitted. Wait until this transaction is sent before acting again.",
+        rollbackTitle: "Space Warp",
+        rollbackBody: "The on-chain result diverged from the optimistic local state. Roll back to the latest confirmed chain state to continue.",
+        rollbackAction: "Space Warp: Roll Back",
         pendingTxAssigned: (hash) => `pendingTxHash: ${hash}`,
         pendingTxMissing: "pendingTxHash: not assigned",
         debug: "Debug",

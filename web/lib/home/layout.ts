@@ -16,6 +16,7 @@ export type HomeArtConfig = {
   className?: string;
   animationDelayMs?: number;
   glowVariant?: "fire" | "water" | "wood" | "portal-active" | "portal-inactive";
+  href?: string;
 };
 
 export type HomeStageConfig = {
@@ -196,6 +197,7 @@ export const CROSS_CHAIN_ART: readonly HomeArtConfig[] = [
     opacity: 0.35,
     zIndex: 2,
     className: "portal-float",
+    href: "https://reactive.network",
   },
   {
     src: "/home/cross-chain-section/portal-active.png",
@@ -209,6 +211,7 @@ export const CROSS_CHAIN_ART: readonly HomeArtConfig[] = [
     maxWidthVw: 19.5,
     zIndex: 4,
     className: "portal-float",
+    href: "https://reactive.network",
   },
   {
     src: "/home/cross-chain-section/teleport-well.png",

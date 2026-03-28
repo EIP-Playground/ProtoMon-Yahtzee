@@ -17,12 +17,12 @@ export const SLOT_LABELS = [
 export type SlotLabel = (typeof SLOT_LABELS)[number];
 
 export const SLOT_DEFINITIONS = [
-  { id: 0, key: "Upper1", title: "💧 Water / Ones", group: "upper" },
-  { id: 1, key: "Upper2", title: "⚙️ Metal / Twos", group: "upper" },
-  { id: 2, key: "Upper3", title: "🪨 Earth / Threes", group: "upper" },
-  { id: 3, key: "Upper4", title: "💨 Air / Fours", group: "upper" },
-  { id: 4, key: "Upper5", title: "🌿 Wood / Fives", group: "upper" },
-  { id: 5, key: "Upper6", title: "🔥 Fire / Sixes", group: "upper" },
+  { id: 0, key: "Upper1", title: "Water / Ones", group: "upper" },
+  { id: 1, key: "Upper2", title: "Metal / Twos", group: "upper" },
+  { id: 2, key: "Upper3", title: "Earth / Threes", group: "upper" },
+  { id: 3, key: "Upper4", title: "Air / Fours", group: "upper" },
+  { id: 4, key: "Upper5", title: "Wood / Fives", group: "upper" },
+  { id: 5, key: "Upper6", title: "Fire / Sixes", group: "upper" },
   { id: 6, key: "ThreeKind", title: "Triple Strike", group: "lower" },
   { id: 7, key: "FourKind", title: "Quad Breaker", group: "lower" },
   { id: 8, key: "FullHouse", title: "Full House", group: "lower" },

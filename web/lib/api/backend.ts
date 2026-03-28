@@ -1,10 +1,14 @@
 import type {
   AdvanceRoundInput,
   AdvanceRoundResult,
+  ConfirmRoundInput,
+  ConfirmRoundResult,
   CreateGameSessionInput,
   CreateGameSessionResult,
   DealerProof,
   FinalizeRoundInput,
+  RollbackRoundInput,
+  RollbackRoundResult,
   RerollDiceInput,
   RerollDiceResult,
   RollDiceInput,
@@ -53,4 +57,12 @@ export function finalizeRound(input: FinalizeRoundInput) {
 
 export function advanceRound(input: AdvanceRoundInput) {
   return postJson<AdvanceRoundResult>("/api/game/advance", input);
+}
+
+export function confirmRound(input: ConfirmRoundInput) {
+  return postJson<ConfirmRoundResult>("/api/game/confirm", input);
+}
+
+export function rollbackRound(input: RollbackRoundInput) {
+  return postJson<RollbackRoundResult>("/api/game/rollback", input);
 }

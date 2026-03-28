@@ -4,6 +4,8 @@ import localFont from "next/font/local";
 import "@rainbow-me/rainbowkit/styles.css";
 import "nes.css/css/nes.min.css";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
+import { PostHogProvider } from "@/components/providers/PostHogProvider";
+import { SmartAccountProvider } from "@/components/providers/SmartAccountProvider";
 import "./globals.css";
 
 const orbitron = Orbitron({
@@ -37,7 +39,11 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" data-locale="zh-CN">
       <body className={`${orbitron.variable} ${pressStart.variable} ${zpix.variable}`}>
-        <LocaleProvider>{children}</LocaleProvider>
+        <PostHogProvider>
+          <LocaleProvider>
+            <SmartAccountProvider>{children}</SmartAccountProvider>
+          </LocaleProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

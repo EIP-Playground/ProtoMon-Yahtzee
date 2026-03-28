@@ -35,7 +35,7 @@ export type BossConfig = {
 
 export const BOSS_1: BossConfig = {
   bossId: 1,
-  name: "Goblin Hacker",
+  name: "Goblin Gear Shaman",
   targetHp: 150,
 };
 
@@ -48,8 +48,24 @@ export type BattleSlotResult = {
 
 export type BattleSlotResults = Record<number, BattleSlotResult | null>;
 
+export type PendingCastSnapshot = {
+  bossHpLocal: number;
+  usedSlots: Record<number, boolean>;
+  upperSubtotalLocal: number;
+  upperBonusClaimedLocal: boolean;
+  finished: boolean;
+  won: boolean;
+};
+
+export type PendingCastState = {
+  txHash: HexString;
+  originTurn: number;
+  slotId: number;
+  optimisticSnapshot: PendingCastSnapshot;
+};
+
 export type DealerProof = {
-  gameId: string;
+  gameId: HexString;
   player: HexAddress;
   rewardRecipient: HexAddress;
   turn: number;
@@ -68,19 +84,29 @@ export type BattleState = {
   bossHpLocal: number;
   bossHpChain: number;
   turn: number;
+  confirmedTurn: number;
   rollCount: number;
   dice: DiceArray | null;
+  carryoverDice: DiceArray | null;
   locked: LockedDice;
+  selectedSlotId: number | null;
   usedSlots: Record<number, boolean>;
+  confirmedUsedSlots: Record<number, boolean>;
   slotResults: BattleSlotResults;
   upperSubtotalLocal: number;
+  confirmedUpperSubtotalLocal: number;
   upperBonusClaimedLocal: boolean;
+  confirmedUpperBonusClaimedLocal: boolean;
   syncStatus: SyncStatus;
   finished: boolean;
+  confirmedFinished: boolean;
   won: boolean;
+  confirmedWon: boolean;
+  rollbackRequired: boolean;
   diceActionState: BattleActionState;
   castActionState: BattleActionState;
   pendingTxHash?: HexString;
+  pendingCast: PendingCastState | null;
 };
 
 export type CreateGameSessionInput = {
@@ -90,7 +116,7 @@ export type CreateGameSessionInput = {
 };
 
 export type CreateGameSessionResult = {
-  gameId: string;
+  gameId: HexString;
   player: HexAddress;
   rewardRecipient: HexAddress;
   bossId: number;
@@ -100,52 +126,82 @@ export type CreateGameSessionResult = {
 };
 
 export type RollDiceInput = {
-  gameId: string;
+  gameId: HexString;
   player: HexAddress;
 };
 
 export type RollDiceResult = {
-  gameId: string;
+  gameId: HexString;
   turn: number;
   rollCount: number;
   dice: DiceArray;
 };
 
 export type RerollDiceInput = {
-  gameId: string;
+  gameId: HexString;
   player: HexAddress;
   holdMask: number;
 };
 
 export type RerollDiceResult = {
-  gameId: string;
+  gameId: HexString;
   turn: number;
   rollCount: number;
   dice: DiceArray;
 };
 
 export type FinalizeRoundInput = {
-  gameId: string;
+  gameId: HexString;
   player: HexAddress;
   rewardRecipient: HexAddress;
 };
 
 export type AdvanceRoundInput = {
-  gameId: string;
+  gameId: HexString;
   player: HexAddress;
   nextTurn: number;
+  pendingTxHash: HexString;
 };
 
 export type AdvanceRoundResult = {
-  gameId: string;
+  gameId: HexString;
   turn: number;
   rollCount: number;
+};
+
+export type ConfirmRoundInput = {
+  gameId: HexString;
+  player: HexAddress;
+  pendingTxHash: HexString;
+  confirmedTurn: number;
+};
+
+export type ConfirmRoundResult = {
+  gameId: HexString;
+  turn: number;
+};
+
+export type RollbackRoundInput = {
+  gameId: HexString;
+  player: HexAddress;
+};
+
+export type RollbackRoundResult = {
+  gameId: HexString;
+  turn: number;
+  rollCount: number;
+  bossHp: number;
+  upperSubtotal: number;
+  upperBonusClaimed: boolean;
+  usedSlotsBitmap: number;
+  finished: boolean;
+  won: boolean;
 };
 
 export type TurnPlayedEvent = {
   eventName: "TurnPlayed";
   args: {
-    gameId: string;
+    gameId: HexString;
     player: HexAddress;
     rewardRecipient: HexAddress;
     turn: number;

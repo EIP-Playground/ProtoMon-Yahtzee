@@ -1,17 +1,58 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { LuLock } from "react-icons/lu";
 
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { createAnimatedDiceFrame, DICE_ELEMENT_MAP } from "@/lib/game/dice";
+import { BATTLE_ELEMENT_VISUALS } from "@/lib/battle/config";
+import { createAnimatedDiceFrame } from "@/lib/game/dice";
 import type { DiceArray, LockedDice } from "@/types/game";
+
+const DIE_POSITIONS = [
+  { left: "28%", top: "35%" },
+  { left: "50%", top: "31%" },
+  { left: "72%", top: "35%" },
+  { left: "39%", top: "64%" },
+  { left: "61%", top: "64%" },
+] as const;
+
+function getDiceFaceSrc(value: number) {
+  if (value >= 1 && value <= 6) {
+    return BATTLE_ELEMENT_VISUALS[value as 1 | 2 | 3 | 4 | 5 | 6].diceFaceSrc;
+  }
+
+  return "/dice/dice-six-sides.png";
+}
+
+function createPreviewDiceFaces(): DiceArray {
+  const pool = [1, 2, 3, 4, 5, 6];
+
+  for (let index = pool.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const current = pool[index];
+
+    pool[index] = pool[swapIndex];
+    pool[swapIndex] = current;
+  }
+
+  return [
+    pool[0] as DiceArray[number],
+    pool[1] as DiceArray[number],
+    pool[2] as DiceArray[number],
+    pool[3] as DiceArray[number],
+    pool[4] as DiceArray[number],
+  ];
+}
 
 type DiceBoardProps = {
   dice: DiceArray | null;
+  carryoverDice: DiceArray | null;
   locked: LockedDice;
   rollCount: number;
-  actionLabel: string;
   canDiceAction: boolean;
   isRollingVisual: boolean;
-  isCasting: boolean;
+  isSubmittingCast: boolean;
+  isChainPending: boolean;
   finished: boolean;
   onDiceAction: () => void;
   onToggleLock: (index: number) => void;
@@ -19,25 +60,31 @@ type DiceBoardProps = {
 
 export function DiceBoard({
   dice,
+  carryoverDice,
   locked,
   rollCount,
-  actionLabel,
   canDiceAction,
   isRollingVisual,
-  isCasting,
+  isSubmittingCast,
+  isChainPending,
   finished,
   onDiceAction,
   onToggleLock,
 }: DiceBoardProps) {
-  const { messages } = useLocale();
+  const { locale, messages } = useLocale();
   const [animatedValues, setAnimatedValues] = useState<DiceArray>(() =>
     createAnimatedDiceFrame(dice, locked),
   );
+  const [previewValues] = useState<DiceArray>(() => createPreviewDiceFaces());
 
   useEffect(() => {
     if (!isRollingVisual) {
       return;
     }
+
+    // Seed the first animation frame immediately so locked dice never flash
+    // to a random face before the interval starts ticking.
+    setAnimatedValues(createAnimatedDiceFrame(dice, locked));
 
     const intervalId = window.setInterval(() => {
       setAnimatedValues(createAnimatedDiceFrame(dice, locked));
@@ -48,90 +95,105 @@ export function DiceBoard({
     };
   }, [dice, isRollingVisual, locked]);
 
-  const values = isRollingVisual ? animatedValues : dice ?? [0, 0, 0, 0, 0];
-  const controlsDisabled = finished || isRollingVisual || isCasting;
+  const displayDice = dice ?? carryoverDice;
+  const statusCopy = useMemo(() => {
+    if (finished) {
+      return messages.battle.dice.battleFinished;
+    }
+
+    if (isSubmittingCast) {
+      return messages.battle.dice.syncingCast;
+    }
+
+    if (isChainPending) {
+      return messages.battle.dice.pendingChain;
+    }
+
+    if (isRollingVisual) {
+      return messages.battle.dice.rolling;
+    }
+
+    if (!dice) {
+      return messages.battle.dice.clickToStart;
+    }
+
+    if (rollCount < 3) {
+      return messages.battle.dice.lockThenRoll;
+    }
+
+    return messages.battle.dice.noRerolls;
+  }, [dice, finished, isChainPending, isRollingVisual, isSubmittingCast, messages.battle.dice, rollCount]);
+  const remainingRolls = Math.max(0, 3 - rollCount);
+  const rollLabel = `${messages.battle.dice.rollButton}(${remainingRolls}/3)`;
 
   return (
-    <section className="rounded-[28px] border border-white/10 bg-white/6 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-cyan-200/80">
-            {messages.battle.dice.eyebrow}
-          </p>
-          <h2 className="mt-3 text-2xl font-semibold text-white">
-            {messages.battle.dice.title}
-          </h2>
-        </div>
-        <div className="rounded-full border border-white/10 bg-slate-950/45 px-4 py-2 text-sm text-slate-300">
-          {messages.battle.dice.rollCountLabel}: {rollCount} / 3
-        </div>
-      </div>
+    <section className="relative">
+      <div className="relative mx-auto aspect-[983/557] w-full">
+        <img
+          src="/battle/dice-plate.png"
+          alt="Wooden dice tray"
+          className="absolute inset-0 h-full w-full object-contain"
+        />
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={onDiceAction}
-          disabled={!canDiceAction || controlsDisabled}
-          className="rounded-full bg-cyan-300 px-6 py-3 text-sm font-medium text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {actionLabel}
-        </button>
-        <div className="rounded-full border border-white/10 bg-slate-950/45 px-4 py-3 text-xs uppercase tracking-[0.18em] text-slate-400">
-          {finished
-            ? messages.battle.dice.battleFinished
-            : isCasting
-              ? messages.battle.dice.syncingCast
+        {DIE_POSITIONS.map((position, index) => {
+          const value =
+            isRollingVisual && dice && locked[index]
+              ? dice[index]
               : isRollingVisual
-                ? messages.battle.dice.rolling
-                : !dice
-                  ? messages.battle.dice.clickToStart
-                  : rollCount < 3
-                    ? messages.battle.dice.lockThenRoll
-                    : messages.battle.dice.noRerolls}
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-5">
-        {values.map((value, index) => {
-          const isUnknown = value === 0;
-          const element = isUnknown ? null : DICE_ELEMENT_MAP[value];
+                ? animatedValues[index]
+                : (displayDice ?? previewValues)[index];
+          const isKnown = value >= 1 && value <= 6;
+          const faceSrc = getDiceFaceSrc(value);
+          const disabled = !dice || isSubmittingCast || finished || isRollingVisual;
 
           return (
             <button
               type="button"
               key={`${index}-${value}-${locked[index] ? "locked" : "open"}`}
+              aria-label={`${messages.battle.dice.die(index)} ${
+                locked[index] ? messages.battle.dice.locked : messages.battle.dice.unlocked
+              }`}
               onClick={() => onToggleLock(index)}
-              disabled={!dice || controlsDisabled}
-              className={
-                locked[index]
-                  ? "rounded-[22px] border border-amber-300/70 bg-amber-300/12 p-5 text-center shadow-[0_0_0_1px_rgba(253,224,71,0.16)] transition hover:border-amber-200 disabled:cursor-not-allowed disabled:opacity-70"
-                  : isRollingVisual
-                    ? "rounded-[22px] border border-cyan-200/40 bg-cyan-300/10 p-5 text-center transition disabled:cursor-not-allowed disabled:opacity-70"
-                    : "rounded-[22px] border border-white/10 bg-slate-950/50 p-5 text-center transition hover:border-cyan-200/40 disabled:cursor-not-allowed disabled:opacity-70"
-              }
+              disabled={disabled}
+              className="absolute h-[31%] w-[22%] -translate-x-1/2 -translate-y-1/2 bg-transparent transition hover:-translate-y-[53%] disabled:cursor-not-allowed"
+              style={{ left: position.left, top: position.top }}
             >
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                {messages.battle.dice.die(index)}
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-2 text-4xl font-semibold text-white">
-                {isUnknown ? (
-                  "?"
-                ) : (
-                  <>
-                    <span>{value}</span>
-                    <span>{element?.emoji}</span>
-                  </>
-                )}
+              <div className="relative flex h-full items-center justify-center">
+                <img
+                  src={faceSrc}
+                  alt={isKnown ? messages.battle.elementLabels[value as 1 | 2 | 3 | 4 | 5 | 6] : messages.battle.dice.unknownFace}
+                  className="h-[88%] w-auto object-contain drop-shadow-[0_10px_16px_rgba(15,23,42,0.22)]"
+                />
+                {locked[index] ? (
+                  <span className="absolute right-[6px] top-[6px] inline-flex h-[18px] w-[18px] items-center justify-center bg-amber-300/90 text-[#3d2307] shadow-[0_4px_10px_rgba(15,23,42,0.18)]">
+                    <LuLock className="h-[10px] w-[10px]" aria-hidden="true" />
+                  </span>
+                ) : null}
               </div>
-              <p className="mt-2 text-xs text-slate-400">
-                {isUnknown ? messages.battle.dice.unknownFace : messages.battle.elementLabels[value]}
-              </p>
-              <p className="mt-4 text-xs uppercase tracking-[0.18em] text-slate-400">
-                {locked[index] ? messages.battle.dice.locked : messages.battle.dice.unlocked}
-              </p>
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-[12px] flex flex-col items-center justify-center gap-2.5">
+        {!finished ? (
+          <p className="pixel-font animate-pulse text-center text-[0.6rem] tracking-wider text-amber-200/90">
+            {locale === "zh-CN" ? "✦ 点击骰子可以锁定或解锁想要的元素 ✦" : "✦ Click dice to lock or unlock elements ✦"}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          onClick={onDiceAction}
+          disabled={!canDiceAction || finished || isRollingVisual || isSubmittingCast}
+          title={statusCopy}
+          aria-label={rollLabel}
+          className={[
+            "pixel-cta-button inline-flex min-h-[54px] min-w-[208px] items-center justify-center gap-3 px-5 py-3 text-[0.88rem] uppercase tracking-[0.16em] text-white disabled:cursor-not-allowed disabled:opacity-55",
+            canDiceAction && !finished && !isRollingVisual && !isSubmittingCast && !isChainPending ? "battle-roll-breathing" : ""
+          ].join(" ")}
+        >
+          {rollLabel}
+        </button>
       </div>
     </section>
   );

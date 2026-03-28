@@ -86,6 +86,20 @@ export function requireGameIdField(body: Record<string, unknown>, fieldName: str
   return value as HexString;
 }
 
+export function requireTxHashField(body: Record<string, unknown>, fieldName: string) {
+  const value = requireStringField(body, fieldName);
+
+  if (!isBytes32Hex(value)) {
+    throw new ApiRouteError(
+      400,
+      `INVALID_${fieldName.toUpperCase()}`,
+      `${fieldName} must be a valid 32-byte transaction hash.`,
+    );
+  }
+
+  return value as HexString;
+}
+
 export function handleRouteError(error: unknown) {
   if (error instanceof ApiRouteError) {
     return NextResponse.json(

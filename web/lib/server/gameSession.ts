@@ -1,10 +1,10 @@
 import { randomBytes } from "node:crypto";
 
 import { getRedis } from "@/lib/server/redis";
-import type { HexAddress, HexString, StoredDiceArray } from "@/types/game";
+import type { DealerProof, HexAddress, HexString, StoredDiceArray } from "@/types/game";
 
 export type BackendGameSession = {
-  gameId: string;
+  gameId: HexString;
   player: HexAddress;
   rewardRecipient: HexAddress;
   bossId: number;
@@ -12,6 +12,9 @@ export type BackendGameSession = {
   rollCount: number;
   currentDice: StoredDiceArray;
   finalized: boolean;
+  finalizedProof: DealerProof | null;
+  pendingChainTxHash: HexString | null;
+  pendingTurn: number | null;
   createdAt: number;
   expiresAt: number;
 };
@@ -32,7 +35,7 @@ function getSessionTtlSeconds(expiresAt: number, now = Date.now()) {
 }
 
 export function createBackendGameSession(input: {
-  gameId: string;
+  gameId: HexString;
   player: HexAddress;
   rewardRecipient: HexAddress;
   bossId: number;
@@ -49,6 +52,9 @@ export function createBackendGameSession(input: {
     rollCount: 0,
     currentDice: EMPTY_DICE,
     finalized: false,
+    finalizedProof: null,
+    pendingChainTxHash: null,
+    pendingTurn: null,
     createdAt: now,
     expiresAt: now + SESSION_TTL_SECONDS * 1000,
   } satisfies BackendGameSession;

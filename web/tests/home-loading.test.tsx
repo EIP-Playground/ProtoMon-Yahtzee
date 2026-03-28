@@ -4,7 +4,11 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const pushMock = vi.fn();
-const createGameSessionMock = vi.fn();
+const createBattleSessionMock = vi.fn();
+const getConnectedSenderAddressMock = vi.fn();
+const startGameOnChainMock = vi.fn();
+const waitForGameStartedMock = vi.fn();
+const preloadBattleAssetsMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -12,8 +16,18 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("@/lib/api/backend", () => ({
-  createGameSession: (...args: unknown[]) => createGameSessionMock(...args),
+vi.mock("@/lib/game/session", () => ({
+  createBattleSession: (...args: unknown[]) => createBattleSessionMock(...args),
+}));
+
+vi.mock("@/lib/chain/gameContract", () => ({
+  getConnectedSenderAddress: (...args: unknown[]) => getConnectedSenderAddressMock(...args),
+  startGameOnChain: (...args: unknown[]) => startGameOnChainMock(...args),
+  waitForGameStarted: (...args: unknown[]) => waitForGameStartedMock(...args),
+}));
+
+vi.mock("@/lib/ui/battleAssets", () => ({
+  preloadBattleAssets: (...args: unknown[]) => preloadBattleAssetsMock(...args),
 }));
 
 vi.mock("@/components/loading/LoadingPage", () => ({
@@ -53,7 +67,14 @@ describe("Home loading flows", () => {
     vi.useFakeTimers();
     window.sessionStorage.clear();
     pushMock.mockReset();
-    createGameSessionMock.mockReset();
+    createBattleSessionMock.mockReset();
+    getConnectedSenderAddressMock.mockReset();
+    startGameOnChainMock.mockReset();
+    waitForGameStartedMock.mockReset();
+    preloadBattleAssetsMock.mockReset();
+    getConnectedSenderAddressMock.mockResolvedValue("0x1111111111111111111111111111111111111111");
+    preloadBattleAssetsMock.mockResolvedValue(undefined);
+    waitForGameStartedMock.mockResolvedValue(undefined);
   });
 
   it("shows the shared loading component on first entry", async () => {
@@ -83,8 +104,13 @@ describe("Home loading flows", () => {
 
   it("keeps create-game loading on screen for at least 2600ms and finishes before navigation", async () => {
     window.sessionStorage.setItem("protomon:entry-loading:seen", "1");
-    createGameSessionMock.mockResolvedValue({
+    createBattleSessionMock.mockResolvedValue({
       gameId: "0xtestgame",
+      rewardRecipient: "0x1111111111111111111111111111111111111111",
+      bossId: 1,
+    });
+    startGameOnChainMock.mockResolvedValue({
+      txHash: `0x${"1".repeat(64)}`,
     });
 
     render(<Home />);
@@ -100,6 +126,7 @@ describe("Home loading flows", () => {
     });
 
     expect(screen.getByTestId("loading-pending")).toBeInTheDocument();
+    expect(screen.queryByTestId("home-controls")).not.toBeInTheDocument();
     expect(screen.getByTestId("loading-duration")).toHaveTextContent(
       String(LOADING_MIN_CREATE_DURATION_MS),
     );
@@ -122,5 +149,41 @@ describe("Home loading flows", () => {
     fireEvent.click(screen.getByRole("button", { name: "complete-loading" }));
 
     expect(pushMock).toHaveBeenCalledWith("/battle/0xtestgame");
+  });
+
+  it("does not show create loading before startGame returns a tx hash", async () => {
+    window.sessionStorage.setItem("protomon:entry-loading:seen", "1");
+    createBattleSessionMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      rewardRecipient: "0x1111111111111111111111111111111111111111",
+      bossId: 1,
+    });
+    startGameOnChainMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          window.setTimeout(() => resolve({ txHash: `0x${"2".repeat(64)}` }), 10);
+        }),
+    );
+
+    render(<Home />);
+
+    await act(async () => {
+      vi.runOnlyPendingTimers();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "立即开战" }));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByTestId("loading-pending")).not.toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(10);
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId("loading-pending")).toBeInTheDocument();
   });
 });

@@ -20,7 +20,7 @@ function WalletPanelButton({
       type="button"
       onClick={onClick}
       className={[
-        "pixel-button inline-flex min-h-[2.7rem] items-center gap-2 px-3.5 py-1.5 text-left text-[0.62rem] uppercase md:min-h-[2.9rem] md:px-4 md:text-[0.68rem]",
+        "pixel-button inline-flex min-h-[2.35rem] items-center gap-1.5 px-2.5 py-1 text-left text-[0.56rem] uppercase md:min-h-[2.45rem] md:px-3 md:text-[0.61rem]",
         warning ? "pixel-button-warning" : "",
       ].join(" ")}
     >
@@ -46,7 +46,7 @@ function WalletSquareButton({
       onClick={onClick}
       aria-label={label}
       className={[
-        "pixel-button inline-flex h-[3rem] w-[3rem] items-center justify-center p-0 text-[#fff6c8] md:hidden",
+        "pixel-button inline-flex h-[2.6rem] w-[2.6rem] items-center justify-center p-0 text-[#fff6c8] md:hidden",
         warning ? "pixel-button-warning" : "",
       ].join(" ")}
     >
@@ -80,13 +80,13 @@ export function PixelWalletButton() {
           return (
             <>
               <div className="pixel-panel hidden min-h-[2.7rem] items-center px-3.5 py-1.5 text-[0.62rem] uppercase text-[#17375c] md:inline-flex md:min-h-[2.9rem] md:px-4 md:text-[0.68rem]">
-                <span className="mr-2 inline-flex text-[#17375c]">
-                  <LuWallet className="h-[1.05rem] w-[1.05rem]" aria-hidden="true" />
+                <span className="mr-1.5 inline-flex text-[#17375c]">
+                  <LuWallet className="h-[0.95rem] w-[0.95rem]" aria-hidden="true" />
                 </span>
                 <p className="pixel-font whitespace-nowrap">{messages.home.walletPreparing}</p>
               </div>
               <WalletSquareButton label={messages.home.walletPreparing}>
-                <LuWallet className="h-[1.12rem] w-[1.12rem]" aria-hidden="true" />
+                <LuWallet className="h-[1rem] w-[1rem]" aria-hidden="true" />
               </WalletSquareButton>
             </>
           );
@@ -98,18 +98,15 @@ export function PixelWalletButton() {
               <div className="hidden md:block">
                 <WalletPanelButton onClick={openConnectModal}>
                   <span className="inline-flex text-[#fff6c8]">
-                    <LuWallet className="h-[1.05rem] w-[1.05rem]" aria-hidden="true" />
+                    <LuWallet className="h-[0.88rem] w-[0.88rem]" aria-hidden="true" />
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="pixel-font text-slate-100/80">{messages.home.walletLabel}</span>
-                    <span className="pixel-font whitespace-nowrap text-[#fff6c8]">
-                      {messages.home.walletConnect}
-                    </span>
-                  </div>
+                  <span className="pixel-font whitespace-nowrap text-[0.54rem] tracking-[0.04em] text-[#fff6c8] md:text-[0.58rem]">
+                    {messages.home.walletConnect}
+                  </span>
                 </WalletPanelButton>
               </div>
               <WalletSquareButton label={messages.home.walletConnect} onClick={openConnectModal}>
-                <LuWallet className="h-[1.12rem] w-[1.12rem]" aria-hidden="true" />
+                <LuWallet className="h-[1rem] w-[1rem]" aria-hidden="true" />
               </WalletSquareButton>
             </>
           );
@@ -121,9 +118,9 @@ export function PixelWalletButton() {
               <div className="hidden md:block">
                 <WalletPanelButton onClick={openChainModal} warning>
                   <span className="inline-flex text-[#fff6c8]">
-                    <LuGlobe className="h-[1.05rem] w-[1.05rem]" aria-hidden="true" />
+                    <LuGlobe className="h-[0.95rem] w-[0.95rem]" aria-hidden="true" />
                   </span>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     <span className="pixel-font text-slate-100/80">{messages.home.walletChainLabel}</span>
                     <span className="pixel-font whitespace-nowrap text-[#fff6c8]">
                       {messages.home.walletWrongNetwork}
@@ -136,7 +133,7 @@ export function PixelWalletButton() {
                 onClick={openChainModal}
                 warning
               >
-                <LuGlobe className="h-[1.12rem] w-[1.12rem]" aria-hidden="true" />
+                <LuGlobe className="h-[1rem] w-[1rem]" aria-hidden="true" />
               </WalletSquareButton>
             </>
           );
@@ -147,24 +144,24 @@ export function PixelWalletButton() {
             <div className="hidden flex-wrap justify-end gap-2 md:flex">
               <WalletPanelButton onClick={openChainModal}>
                 <span className="inline-flex text-[#fff6c8]">
-                  <LuGlobe className="h-[1.05rem] w-[1.05rem]" aria-hidden="true" />
+                  <LuGlobe className="h-[0.95rem] w-[0.95rem]" aria-hidden="true" />
                 </span>
-                <div className="flex flex-col text-left leading-[1.25]">
-                  <span className="pixel-font text-[0.52rem] text-slate-100/75">
+                <div className="flex flex-col text-left leading-[1.2]">
+                  <span className="pixel-font text-[0.49rem] text-slate-100/75">
                     {messages.home.walletChainLabel}
                   </span>
-                  <span className="pixel-font whitespace-nowrap text-[#fff6c8]">{chain.name}</span>
+                  <span className="pixel-font whitespace-nowrap text-[0.6rem] text-[#fff6c8]">{chain.name}</span>
                 </div>
               </WalletPanelButton>
               <WalletPanelButton onClick={openAccountModal}>
                 <span className="inline-flex text-[#fff6c8]">
-                  <LuWallet className="h-[1.05rem] w-[1.05rem]" aria-hidden="true" />
+                  <LuWallet className="h-[0.95rem] w-[0.95rem]" aria-hidden="true" />
                 </span>
-                <div className="flex flex-col text-left leading-[1.25]">
-                  <span className="pixel-font text-[0.52rem] text-slate-100/75">
+                <div className="flex flex-col text-left leading-[1.2]">
+                  <span className="pixel-font text-[0.49rem] text-slate-100/75">
                     {messages.home.walletAccountLabel}
                   </span>
-                  <span className="pixel-font whitespace-nowrap text-[#fff6c8]">
+                  <span className="pixel-font whitespace-nowrap text-[0.6rem] text-[#fff6c8]">
                     {account.displayName}
                     {account.displayBalance ? ` · ${account.displayBalance}` : ""}
                   </span>
@@ -172,7 +169,7 @@ export function PixelWalletButton() {
               </WalletPanelButton>
             </div>
             <WalletSquareButton label={messages.home.walletLabel} onClick={openAccountModal}>
-              <LuWallet className="h-[1.12rem] w-[1.12rem]" aria-hidden="true" />
+              <LuWallet className="h-[1rem] w-[1rem]" aria-hidden="true" />
             </WalletSquareButton>
           </>
         );

@@ -42,7 +42,11 @@ export function LanguageSwitcher({
 
   if (isPixel) {
     return (
-      <div ref={rootRef} className={["relative", className ?? ""].join(" ")} aria-label={messages.common.language}>
+      <div
+        ref={rootRef}
+        className={["relative z-[90] overflow-visible", className ?? ""].join(" ")}
+        aria-label={messages.common.language}
+      >
         <button
           type="button"
           aria-haspopup="menu"
@@ -51,16 +55,16 @@ export function LanguageSwitcher({
           onClick={() => setOpen((current) => !current)}
           className={[
             "pixel-button inline-flex items-center justify-center p-0 text-[#fff6c8]",
-            compact ? "h-[2.9rem] w-[2.9rem]" : "h-[3.2rem] w-[3.2rem]",
+            compact ? "h-[2.55rem] w-[2.55rem]" : "h-[2.85rem] w-[2.85rem]",
           ].join(" ")}
         >
-          <MdTranslate className="h-4.5 w-4.5 sm:h-5 sm:w-5" aria-hidden="true" />
+          <MdTranslate className="h-4 w-4 sm:h-[1.12rem] sm:w-[1.12rem]" aria-hidden="true" />
         </button>
 
         {open ? (
           <div
             role="menu"
-            className="pixel-panel absolute right-0 top-[calc(100%+0.45rem)] flex min-w-[5.2rem] flex-col gap-1 p-1 text-[#fef3b2]"
+            className="pixel-panel absolute right-0 top-[calc(100%+0.45rem)] z-[100] flex min-w-[4.8rem] flex-col gap-1 p-1 text-[#fef3b2]"
           >
             {SUPPORTED_LOCALES.map((candidate) => (
               <button
@@ -73,7 +77,7 @@ export function LanguageSwitcher({
                   setOpen(false);
                 }}
                 className={[
-                  "pixel-button pixel-font min-h-[2.2rem] px-3 py-1.5 text-left text-[0.64rem]",
+                  "pixel-button pixel-font min-h-[2rem] px-2.5 py-1.25 text-left text-[0.58rem]",
                   locale === candidate
                     ? "bg-[#f1f7ff] text-[#17375c]"
                     : "bg-[#102034] text-slate-100 hover:bg-[#163053] hover:text-white",

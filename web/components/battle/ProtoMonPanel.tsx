@@ -47,8 +47,8 @@ export function ProtoMonPanel() {
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2 text-sm text-slate-100">
-                    <span className="text-lg">{element.emoji}</span>
-                    <span>{messages.battle.elementLabels[diceValue]}</span>
+                    <span className="inline-flex h-2.5 w-2.5 rounded-full bg-cyan-200/80" />
+                    <span>{messages.battle.elementLabels[diceValue] ?? element.label}</span>
                   </div>
                   <span className="text-sm font-medium text-white">{value} / 6</span>
                 </div>

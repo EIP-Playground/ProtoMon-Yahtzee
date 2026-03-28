@@ -6,6 +6,7 @@ import {
   requireAddressField,
   requireGameIdField,
   requireIntegerField,
+  requireTxHashField,
 } from "@/lib/server/http";
 import type { AdvanceRoundResult } from "@/types/game";
 
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
     const gameId = requireGameIdField(body, "gameId");
     const player = requireAddressField(body, "player");
     const nextTurn = requireIntegerField(body, "nextTurn");
+    const pendingTxHash = requireTxHashField(body, "pendingTxHash");
     const session = await getBackendGameSession(gameId);
 
     if (!session) {
@@ -27,6 +29,14 @@ export async function POST(request: Request) {
 
     if (session.rollCount < 1) {
       throw new ApiRouteError(409, "ROLL_NOT_STARTED", "The current round has not started yet.");
+    }
+
+    if (session.pendingChainTxHash) {
+      throw new ApiRouteError(
+        409,
+        "PENDING_CHAIN_CONFIRMATION",
+        "The game session already has a pending on-chain turn.",
+      );
     }
 
     if (nextTurn !== session.turn + 1) {
@@ -47,6 +57,9 @@ export async function POST(request: Request) {
       rollCount: 0,
       currentDice: [0, 0, 0, 0, 0] as [0, 0, 0, 0, 0],
       finalized: false,
+      finalizedProof: null,
+      pendingChainTxHash: pendingTxHash,
+      pendingTurn: nextTurn,
     };
 
     await saveBackendGameSession(updatedSession);
