@@ -685,3 +685,29 @@ Original prompt: PLEASE IMPLEMENT THIS PLAN:
 ## Notes
 
 - `develop-web-game` Playwright validation is still blocked here because the local runtime does not provide the `playwright` package in `web/` (`require.resolve("playwright")` fails).
+
+## 2026-03-29 Project README Rewrite
+
+- Replaced the minimal root `README.md` with a submission-oriented English project README.
+- Added a full Chinese companion file at `README.zh-CN.md`.
+- Reframed the repo landing docs around the Reactive hackathon review criteria:
+  - problem statement
+  - solution overview
+  - explicit Reactive Contract usage
+  - deployed addresses
+  - post-deployment workflow
+  - transaction record placeholders
+  - quick start
+  - current gaps
+- Pulled deployed contract addresses and known deployment transaction hashes from the existing docs and kept still-missing workflow artifacts clearly marked as `TODO`.
+- Added explicit language switch links between the English and Chinese README files.
+
+## Validation
+
+- Manually reviewed both README files for structure, link targets, and repo-path references.
+- Verified referenced local paths exist:
+  - `web/public/protomon-logo.png`
+  - `docs/deployment-workflow.md`
+  - `contracts/origin/ProtoMonGame.sol`
+  - `contracts/reactive/ProtoMonReactiveBadge.sol`
+  - `contracts/destination/ProtoMonBadge.sol`
