@@ -40,6 +40,7 @@ export function createInitialBattleState(
     rollCount: 0,
     dice: null,
     locked: EMPTY_LOCKED_DICE,
+    selectedSlotId: null,
     usedSlots: createEmptyUsedSlots(),
     slotResults: createEmptySlotResults(),
     upperSubtotalLocal: 0,
@@ -84,11 +85,23 @@ export function toggleLockedDie(state: BattleState, dieIndex: number): BattleSta
   };
 }
 
+export function selectCastSlot(state: BattleState, slotId: number): BattleState {
+  if (state.usedSlots[slotId] || state.finished || state.castActionState === "waiting") {
+    return state;
+  }
+
+  return {
+    ...state,
+    selectedSlotId: slotId,
+  };
+}
+
 export function resetRoundLocal(state: BattleState): BattleState {
   const baseState = {
     ...state,
     dice: null,
     locked: EMPTY_LOCKED_DICE,
+    selectedSlotId: null,
     rollCount: 0,
     syncStatus: "LOCAL_APPLIED" as const,
   };
@@ -233,6 +246,17 @@ function parsePersistedBattleState(value: unknown): PersistedBattleState | null 
     return null;
   }
 
+  if (
+    candidate.selectedSlotId !== undefined &&
+    candidate.selectedSlotId !== null &&
+    (typeof candidate.selectedSlotId !== "number" ||
+      !Number.isInteger(candidate.selectedSlotId) ||
+      candidate.selectedSlotId < 0 ||
+      candidate.selectedSlotId >= TOTAL_SLOTS)
+  ) {
+    return null;
+  }
+
   if (candidate.dice !== null && !isDiceArray(candidate.dice)) {
     return null;
   }
@@ -254,6 +278,10 @@ function parsePersistedBattleState(value: unknown): PersistedBattleState | null 
     rollCount: candidate.rollCount,
     dice: candidate.dice as DiceArray | null,
     locked: candidate.locked,
+    selectedSlotId:
+      candidate.selectedSlotId === undefined || candidate.selectedSlotId === null
+        ? null
+        : Number(candidate.selectedSlotId),
     usedSlots: candidate.usedSlots as Record<number, boolean>,
     slotResults: candidate.slotResults as BattleState["slotResults"],
     upperSubtotalLocal: candidate.upperSubtotalLocal,

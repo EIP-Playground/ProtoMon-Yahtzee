@@ -40,10 +40,10 @@ export function HomeFloatingControls() {
       className="pixel-frost-nav pointer-events-auto fixed inset-x-0 top-0 z-[60] flex w-full items-center justify-end gap-2 px-3 py-3 md:gap-3 md:px-5 md:py-3.5"
     >
       <div className="flex w-full items-center justify-end gap-2 md:mx-auto md:max-w-[1600px] md:gap-3">
-        <LanguageSwitcher compact variant="pixel" />
         <div className="shrink-0">
           <PixelWalletButton />
         </div>
+        <LanguageSwitcher compact variant="pixel" />
       </div>
     </nav>
   );

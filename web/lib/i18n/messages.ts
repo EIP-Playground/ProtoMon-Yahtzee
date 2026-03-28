@@ -143,6 +143,8 @@ type LocaleMessages = {
       cast: string;
       damage: (amount: number) => string;
       upperBonusTag: (bonusDamage: number) => string;
+      rewardHint: string;
+      slotHints: Record<SlotLabel, string>;
       slotTitles: Record<SlotLabel, string>;
     };
     protomon: {
@@ -288,8 +290,8 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           : "本地 CAST 已应用，但后端推进下一轮失败。",
       boss: {
         eyebrow: "Boss",
-        name: "哥布林黑客",
-        description: "经典快艇骰子战斗包装。击倒 150 HP 的哥布林黑客。",
+        name: "哥布林机巧萨满",
+        description: "经典快艇骰子战斗包装。击倒 150 HP 的哥布林机巧萨满。",
         turn: "回合",
         localHp: "本地 HP",
         chainHp: "链上 HP",
@@ -340,6 +342,22 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         cast: "CAST",
         damage: (amount) => `${amount} dmg`,
         upperBonusTag: (bonusDamage) => `+${bonusDamage} 上半区奖励`,
+        rewardHint: "上半区累计达到 63 分时，额外获得 35 点奖励伤害。",
+        slotHints: {
+          Upper1: "统计所有水元素骰面，累计成当前水系伤害。",
+          Upper2: "统计所有金元素骰面，累计成当前金系伤害。",
+          Upper3: "统计所有土元素骰面，累计成当前土系伤害。",
+          Upper4: "统计所有风元素骰面，累计成当前风系伤害。",
+          Upper5: "统计所有木元素骰面，累计成当前木系伤害。",
+          Upper6: "统计所有火元素骰面，累计成当前火系伤害。",
+          ThreeKind: "至少三枚同元素时释放三条伤害。",
+          FourKind: "至少四枚同元素时释放四条伤害。",
+          FullHouse: "三同加两同的组合会触发葫芦伤害。",
+          SmallStraight: "任意四连序列会触发小顺伤害。",
+          LargeStraight: "完整五连序列会触发大顺伤害。",
+          Yahtzee: "五枚同元素时触发快艇终结伤害。",
+          Chance: "结算全部骰面总和，释放机会伤害。",
+        },
         slotTitles: {
           Upper1: "💧 水 / 一点",
           Upper2: "⚙️ 金 / 两点",
@@ -516,8 +534,8 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           : "Local CAST applied, but backend round advance failed.",
       boss: {
         eyebrow: "Boss",
-        name: "Goblin Hacker",
-        description: "Classic Yahtzee battle wrapper. Bring down the 150 HP Goblin Hacker.",
+        name: "Goblin Gear Shaman",
+        description: "Classic Yahtzee battle wrapper. Bring down the 150 HP Goblin Gear Shaman.",
         turn: "Turn",
         localHp: "Local HP",
         chainHp: "Chain HP",
@@ -568,6 +586,22 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
         cast: "CAST",
         damage: (amount) => `${amount} dmg`,
         upperBonusTag: (bonusDamage) => `+${bonusDamage} upper bonus`,
+        rewardHint: "Reach 63 points in the upper section to unlock +35 bonus damage.",
+        slotHints: {
+          Upper1: "Convert all water dice faces into current water damage.",
+          Upper2: "Convert all metal dice faces into current metal damage.",
+          Upper3: "Convert all earth dice faces into current earth damage.",
+          Upper4: "Convert all air dice faces into current air damage.",
+          Upper5: "Convert all wood dice faces into current wood damage.",
+          Upper6: "Convert all fire dice faces into current fire damage.",
+          ThreeKind: "Cast this row with at least three matching faces.",
+          FourKind: "Cast this row with at least four matching faces.",
+          FullHouse: "Three of one face plus two of another triggers this cast.",
+          SmallStraight: "Any four-step sequence triggers this cast.",
+          LargeStraight: "A full five-step sequence triggers this cast.",
+          Yahtzee: "Five matching faces unleash the Yahtzee finisher.",
+          Chance: "Spend the total of all dice faces as raw damage.",
+        },
         slotTitles: {
           Upper1: "💧 Water / Ones",
           Upper2: "⚙️ Metal / Twos",

@@ -10,6 +10,7 @@ import {
   getBattleStorageKey,
   loadBattleStateSnapshot,
   saveBattleStateSnapshot,
+  selectCastSlot,
   toggleLockedDie,
 } from "@/store/battleStore";
 import type { BattleState, DiceArray } from "@/types/game";
@@ -152,8 +153,24 @@ describe("battleStore helpers", () => {
     ]);
   });
 
+  it("tracks the currently selected cast slot", () => {
+    const state = withDice([1, 2, 3, 4, 5]);
+    const usedSlots = createEmptyUsedSlots();
+    usedSlots[9] = true;
+
+    expect(selectCastSlot(state, 9).selectedSlotId).toBe(9);
+    expect(
+      selectCastSlot(
+        withDice([1, 2, 3, 4, 5], {
+          usedSlots,
+        }),
+        9,
+      ).selectedSlotId,
+    ).toBeNull();
+  });
+
   it("applies local cast, consumes the slot, and advances the turn", () => {
-    const nextState = applyLocalCast(withDice([2, 2, 2, 4, 5]), 6);
+    const nextState = applyLocalCast(withDice([2, 2, 2, 4, 5], { selectedSlotId: 6 }), 6);
 
     expect(nextState.bossHpLocal).toBe(150 - 15);
     expect(nextState.bossHpChain).toBe(150 - 15);
@@ -166,6 +183,7 @@ describe("battleStore helpers", () => {
     });
     expect(nextState.dice).toBeNull();
     expect(nextState.locked).toEqual([false, false, false, false, false]);
+    expect(nextState.selectedSlotId).toBeNull();
     expect(nextState.rollCount).toBe(0);
     expect(nextState.turn).toBe(2);
     expect(nextState.finished).toBe(false);
@@ -232,6 +250,7 @@ describe("battle snapshot persistence", () => {
   it("serializes and restores battle state snapshots through storage", () => {
     const state = withDice([6, 6, 1, 2, 3], {
       locked: [true, false, false, false, true],
+      selectedSlotId: 9,
       upperSubtotalLocal: 63,
       upperBonusClaimedLocal: true,
     });
@@ -258,6 +277,7 @@ describe("battle snapshot persistence", () => {
       slotResults: castState.slotResults,
       upperSubtotalLocal: castState.upperSubtotalLocal,
       upperBonusClaimedLocal: true,
+      selectedSlotId: null,
       diceActionState: "idle",
       castActionState: "idle",
     });

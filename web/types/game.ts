@@ -35,7 +35,7 @@ export type BossConfig = {
 
 export const BOSS_1: BossConfig = {
   bossId: 1,
-  name: "Goblin Hacker",
+  name: "Goblin Gear Shaman",
   targetHp: 150,
 };
 
@@ -71,6 +71,7 @@ export type BattleState = {
   rollCount: number;
   dice: DiceArray | null;
   locked: LockedDice;
+  selectedSlotId: number | null;
   usedSlots: Record<number, boolean>;
   slotResults: BattleSlotResults;
   upperSubtotalLocal: number;

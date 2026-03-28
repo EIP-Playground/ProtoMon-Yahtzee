@@ -181,34 +181,34 @@ a {
     opacity: 0.9;
     transform: translateY(0) scale(1);
     filter:
-      drop-shadow(0 0 0.22rem rgba(197, 118, 255, 0.58))
-      drop-shadow(0 0 0.52rem rgba(145, 62, 255, 0.4));
+      drop-shadow(0 0 0.18rem rgba(197, 118, 255, 0.46))
+      drop-shadow(0 0 0.38rem rgba(145, 62, 255, 0.28));
     text-shadow:
       0.08rem 0 0 rgba(26, 11, 49, 1),
       -0.08rem 0 0 rgba(26, 11, 49, 1),
       0 0.08rem 0 rgba(26, 11, 49, 1),
       0 -0.08rem 0 rgba(26, 11, 49, 1),
-      0 0 0.7rem rgba(204, 117, 255, 0.88),
-      0 0 1.45rem rgba(169, 85, 255, 0.7),
-      0 0 2.3rem rgba(146, 62, 255, 0.34);
+      0 0 0.5rem rgba(204, 117, 255, 0.62),
+      0 0 1rem rgba(169, 85, 255, 0.42),
+      0 0 1.5rem rgba(146, 62, 255, 0.18);
   }
 
   50% {
     color: #f1dcff;
     opacity: 1;
-    transform: translateY(-0.02em) scale(1.04);
+    transform: translateY(-0.01em) scale(1.015);
     filter:
-      drop-shadow(0 0 0.34rem rgba(225, 170, 255, 0.96))
-      drop-shadow(0 0 0.9rem rgba(167, 82, 255, 0.74))
-      drop-shadow(0 0 1.4rem rgba(136, 54, 255, 0.46));
+      drop-shadow(0 0 0.24rem rgba(225, 170, 255, 0.72))
+      drop-shadow(0 0 0.58rem rgba(167, 82, 255, 0.52))
+      drop-shadow(0 0 0.95rem rgba(136, 54, 255, 0.28));
     text-shadow:
       0.08rem 0 0 rgba(28, 11, 54, 1),
       -0.08rem 0 0 rgba(28, 11, 54, 1),
       0 0.08rem 0 rgba(28, 11, 54, 1),
       0 -0.08rem 0 rgba(28, 11, 54, 1),
-      0 0 0.95rem rgba(231, 169, 255, 1),
-      0 0 1.9rem rgba(194, 102, 255, 0.88),
-      0 0 3rem rgba(161, 74, 255, 0.62);
+      0 0 0.65rem rgba(231, 169, 255, 0.82),
+      0 0 1.2rem rgba(194, 102, 255, 0.52),
+      0 0 1.8rem rgba(161, 74, 255, 0.24);
   }
 }
 
@@ -234,6 +234,103 @@ a {
   }
 }
 
+@keyframes battle-rainbow-border {
+  0% {
+    border-color: #ff6a6a;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 0 0 2px rgba(255, 106, 106, 0.18);
+  }
+
+  25% {
+    border-color: #f8cf4b;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 0 0 2px rgba(248, 207, 75, 0.18);
+  }
+
+  50% {
+    border-color: #5dcf7e;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 0 0 2px rgba(93, 207, 126, 0.18);
+  }
+
+  75% {
+    border-color: #61b3ff;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 0 0 2px rgba(97, 179, 255, 0.18);
+  }
+
+  100% {
+    border-color: #d57bff;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 0 0 2px rgba(213, 123, 255, 0.18);
+  }
+}
+
+@keyframes battle-cast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes battle-damage-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-42px) scale(1.08);
+  }
+}
+
+@keyframes battle-row-hit {
+  0%,
+  100% {
+    filter: brightness(1);
+    transform: scale(1);
+  }
+
+  40% {
+    filter: brightness(1.22);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes battle-row-arming {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-1px);
+  }
+
+  50% {
+    transform: translateX(1px);
+  }
+
+  75% {
+    transform: translateX(-1px);
+  }
+}
+
 .pixel-font {
   font-family: var(--font-body);
   letter-spacing: var(--pixel-letter-spacing);
@@ -249,6 +346,56 @@ a {
     0.18rem 0.18rem 0 rgba(4, 11, 20, 0.45),
     0 0 0.6rem rgba(31, 102, 187, 0.18);
   backdrop-filter: blur(4px);
+}
+
+.pixel-rounded-lg {
+  clip-path: polygon(
+    0.45rem 0,
+    calc(100% - 0.45rem) 0,
+    calc(100% - 0.45rem) 0.14rem,
+    calc(100% - 0.14rem) 0.14rem,
+    calc(100% - 0.14rem) 0.45rem,
+    100% 0.45rem,
+    100% calc(100% - 0.45rem),
+    calc(100% - 0.14rem) calc(100% - 0.45rem),
+    calc(100% - 0.14rem) calc(100% - 0.14rem),
+    calc(100% - 0.45rem) calc(100% - 0.14rem),
+    calc(100% - 0.45rem) 100%,
+    0.45rem 100%,
+    0.45rem calc(100% - 0.14rem),
+    0.14rem calc(100% - 0.14rem),
+    0.14rem calc(100% - 0.45rem),
+    0 calc(100% - 0.45rem),
+    0 0.45rem,
+    0.14rem 0.45rem,
+    0.14rem 0.14rem,
+    0.45rem 0.14rem
+  );
+}
+
+.pixel-rounded-md {
+  clip-path: polygon(
+    0.3rem 0,
+    calc(100% - 0.3rem) 0,
+    calc(100% - 0.3rem) 0.1rem,
+    calc(100% - 0.1rem) 0.1rem,
+    calc(100% - 0.1rem) 0.3rem,
+    100% 0.3rem,
+    100% calc(100% - 0.3rem),
+    calc(100% - 0.1rem) calc(100% - 0.3rem),
+    calc(100% - 0.1rem) calc(100% - 0.1rem),
+    calc(100% - 0.3rem) calc(100% - 0.1rem),
+    calc(100% - 0.3rem) 100%,
+    0.3rem 100%,
+    0.3rem calc(100% - 0.1rem),
+    0.1rem calc(100% - 0.1rem),
+    0.1rem calc(100% - 0.3rem),
+    0 calc(100% - 0.3rem),
+    0 0.3rem,
+    0.1rem 0.3rem,
+    0.1rem 0.1rem,
+    0.3rem 0.1rem
+  );
 }
 
 .pixel-button {
@@ -276,12 +423,46 @@ a {
     0.14rem 0.14rem 0 rgba(8, 17, 31, 0.42);
 }
 
+.pixel-button,
+.pixel-cta-button,
+.pixel-stone-button {
+  transition:
+    transform 140ms ease,
+    filter 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease;
+  will-change: transform, filter, box-shadow;
+}
+
+.pixel-button:hover:not(:active),
+.pixel-cta-button:hover:not(:active),
+.pixel-stone-button:hover:not(:active) {
+  transform: translate(-0.06rem, -0.06rem);
+  filter: brightness(1.08) saturate(1.05);
+}
+
+.pixel-button:focus-visible,
+.pixel-cta-button:focus-visible,
+.pixel-stone-button:focus-visible {
+  outline: 0.12rem solid rgba(255, 237, 155, 0.94);
+  outline-offset: 0.08rem;
+}
+
+.pixel-button:hover:not(:active) {
+  box-shadow:
+    inset 0.1rem 0.1rem 0 rgba(239, 248, 255, 0.24),
+    inset -0.1rem -0.1rem 0 rgba(8, 17, 31, 0.3),
+    inset 0 0 0 0.08rem rgba(255, 241, 186, 0.42),
+    0.18rem 0.18rem 0 rgba(8, 17, 31, 0.5);
+}
+
 .pixel-button:active {
-  transform: translate(0.08rem, 0.08rem);
+  transform: translate(0.1rem, 0.1rem);
   box-shadow:
     inset 0.08rem 0.08rem 0 rgba(239, 248, 255, 0.14),
     inset -0.08rem -0.08rem 0 rgba(8, 17, 31, 0.24),
-    0.1rem 0.1rem 0 rgba(8, 17, 31, 0.42);
+    0.08rem 0.08rem 0 rgba(8, 17, 31, 0.42);
 }
 
 .pixel-button-warning {
@@ -315,8 +496,17 @@ a {
   padding: 5.4% 8% 6.2%;
 }
 
+.pixel-cta-button:hover:not(:active) {
+  box-shadow:
+    inset 0.16rem 0.16rem 0 rgba(239, 248, 255, 0.22),
+    inset -0.16rem -0.16rem 0 rgba(8, 17, 31, 0.28),
+    inset 0 0 0 0.14rem #fff0ba,
+    0.22rem 0.22rem 0 rgba(7, 16, 30, 0.54),
+    0 0 1.05rem rgba(51, 141, 255, 0.22);
+}
+
 .pixel-cta-button:active {
-  transform: translate(0.1rem, 0.1rem);
+  transform: translate(0.12rem, 0.12rem);
   box-shadow:
     inset 0.1rem 0.1rem 0 rgba(239, 248, 255, 0.16),
     inset -0.1rem -0.1rem 0 rgba(8, 17, 31, 0.28),
@@ -338,6 +528,395 @@ a {
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 0.4rem 1.2rem rgba(10, 19, 35, 0.18);
   backdrop-filter: blur(20px) saturate(135%);
+}
+
+.battle-hp-shell {
+  position: relative;
+  height: 1.1rem;
+  width: 100%;
+  overflow: hidden;
+  border: 0.18rem solid #101522;
+  background: rgba(0, 0, 0, 0.78);
+  clip-path: polygon(
+    0.3rem 0,
+    calc(100% - 0.3rem) 0,
+    calc(100% - 0.3rem) 0.1rem,
+    calc(100% - 0.1rem) 0.1rem,
+    calc(100% - 0.1rem) 0.3rem,
+    100% 0.3rem,
+    100% calc(100% - 0.3rem),
+    calc(100% - 0.1rem) calc(100% - 0.3rem),
+    calc(100% - 0.1rem) calc(100% - 0.1rem),
+    calc(100% - 0.3rem) calc(100% - 0.1rem),
+    calc(100% - 0.3rem) 100%,
+    0.3rem 100%,
+    0.3rem calc(100% - 0.1rem),
+    0.1rem calc(100% - 0.1rem),
+    0.1rem calc(100% - 0.3rem),
+    0 calc(100% - 0.3rem),
+    0 0.3rem,
+    0.1rem 0.3rem,
+    0.1rem 0.1rem,
+    0.3rem 0.1rem
+  );
+  box-shadow:
+    inset 0 0 0 0.08rem rgba(255, 255, 255, 0.08),
+    0 0.24rem 0 rgba(8, 13, 22, 0.28);
+}
+
+.battle-hp-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.54rem;
+  color: #ffffff;
+  text-shadow:
+    0.06rem 0 0 #111827,
+    -0.06rem 0 0 #111827,
+    0 0.06rem 0 #111827,
+    0 -0.06rem 0 #111827;
+}
+
+.battle-name-text {
+  font-size: 0.68rem;
+  letter-spacing: var(--pixel-letter-spacing);
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow:
+    0.06rem 0 0 #111827,
+    -0.06rem 0 0 #111827,
+    0 0.06rem 0 #111827,
+    0 -0.06rem 0 #111827,
+    0.12rem 0.12rem 0 rgba(17, 24, 39, 0.88);
+}
+
+.battle-command-title {
+  font-family: var(--font-heading);
+  font-size: 0.86rem;
+  letter-spacing: var(--pixel-letter-spacing);
+  text-transform: uppercase;
+  color: #111827;
+}
+
+.battle-hp-fill-player,
+.battle-hp-fill-boss {
+  height: 100%;
+  transition: width 340ms ease-out;
+}
+
+.battle-hp-fill-player {
+  background: linear-gradient(90deg, #f43f5e 0%, #ef4444 65%, #0f6d48 100%);
+}
+
+.battle-hp-fill-boss {
+  background: linear-gradient(90deg, #ff6d5f 0%, #ef4444 62%, #0f6d48 100%);
+}
+
+.battle-row-shell {
+  position: relative;
+  overflow: hidden;
+  border: 0.18rem solid #666562;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 0.08rem rgba(255, 255, 255, 0.1);
+  transition:
+    min-height 180ms ease,
+    padding 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.battle-row-shell:hover:not(.battle-row-used) {
+  border-color: #8d8c88;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.battle-row-selected {
+  min-height: 3rem;
+  animation: battle-rainbow-border 1.4s linear infinite;
+}
+
+.battle-row-arming {
+  animation:
+    battle-rainbow-border 1.4s linear infinite,
+    battle-row-arming 180ms linear infinite;
+}
+
+.battle-row-used {
+  opacity: 0.82;
+}
+
+.battle-row-hit {
+  animation: battle-row-hit 620ms ease;
+}
+
+.battle-entry-icon {
+  display: block;
+  height: 1.7rem;
+  width: 1.7rem;
+  flex-shrink: 0;
+  border: 2px solid #e1b800;
+  border-radius: 0.18rem;
+  background: rgba(255, 255, 255, 0.18);
+  object-fit: contain;
+  padding: 0.1rem;
+  box-shadow:
+    inset 0 0 0 0.06rem rgba(255, 255, 255, 0.16),
+    0 0.18rem 0 rgba(15, 23, 42, 0.18);
+}
+
+.battle-element-bar {
+  position: relative;
+  height: 1.55rem;
+  overflow: hidden;
+  border: 0.14rem solid rgba(46, 50, 57, 0.85);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.battle-element-fill {
+  height: 100%;
+  transition: width 520ms ease-out;
+}
+
+.battle-element-fill-hit {
+  animation: battle-row-hit 620ms ease;
+}
+
+.battle-element-value {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-pixel-ui), monospace;
+  font-size: 0.65rem;
+  letter-spacing: var(--pixel-letter-spacing);
+  color: #1f2937;
+}
+
+.battle-element-value-hit {
+  animation: battle-row-hit 620ms ease;
+}
+
+.battle-row-cast-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.45rem;
+  padding-top: 0.45rem;
+  border-top: 0.12rem solid rgba(46, 50, 57, 0.16);
+}
+
+.battle-row-cast-overlay {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.battle-hold-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(44, 196, 255, 0.62) 0%,
+    rgba(106, 98, 255, 0.78) 52%,
+    rgba(255, 214, 88, 0.96) 100%
+  );
+  border-right: 0.14rem solid rgba(255, 247, 201, 0.96);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+    inset 0 0 18px rgba(255, 255, 255, 0.14),
+    0 0 24px rgba(106, 98, 255, 0.28),
+    0 0 18px rgba(255, 214, 88, 0.24);
+  opacity: 0.98;
+  transition: width 45ms linear;
+  z-index: 0;
+}
+
+.battle-cast-slide-in {
+  animation: battle-cast-slide-in 180ms ease-out;
+}
+
+.battle-reward-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: 0.18rem solid #6d6547;
+  background: rgba(255, 244, 199, 0.48);
+  padding: 0.28rem 0.38rem;
+  box-shadow: inset 0 0 0 0.08rem rgba(255, 255, 255, 0.16);
+}
+
+.battle-reward-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.14rem solid #7b5a11;
+  background: rgba(255, 196, 74, 0.88);
+  padding: 0.14rem 0.3rem;
+  font-family: var(--font-pixel-ui), monospace;
+  font-size: 0.6rem;
+  letter-spacing: var(--pixel-letter-spacing);
+  color: #261300;
+}
+
+.battle-spell-label,
+.battle-spell-damage,
+.battle-used-badge,
+.battle-row-damage-pop {
+  font-family: var(--font-pixel-ui), monospace;
+  letter-spacing: var(--pixel-letter-spacing);
+}
+
+.battle-spell-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #1f2937;
+  line-height: 1.3;
+  text-shadow:
+    0.04rem 0 0 rgba(255, 255, 255, 0.28),
+    -0.04rem 0 0 rgba(255, 255, 255, 0.18),
+    0 0.04rem 0 rgba(17, 24, 39, 0.16);
+}
+
+.battle-spell-damage {
+  font-size: 0.65rem;
+  color: #1f2937;
+}
+
+.battle-spell-damage-hit {
+  animation: battle-row-hit 620ms ease;
+}
+
+.battle-used-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.14rem solid #6a2a26;
+  background: rgba(245, 95, 72, 0.94);
+  padding: 0.16rem 0.35rem;
+  font-size: 0.44rem;
+  text-transform: uppercase;
+  color: #fff5ed;
+}
+
+.battle-row-damage-pop {
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  color: #ef4444;
+  animation: battle-damage-pop 820ms ease-out forwards;
+}
+
+.battle-row-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1rem;
+  color: #1f2937;
+}
+
+.battle-row-tooltip-title,
+.battle-row-tooltip-body {
+  letter-spacing: var(--pixel-letter-spacing);
+}
+
+.battle-row-tooltip-title {
+  font-size: 0.54rem;
+  line-height: 1.45;
+  color: #fff8d1;
+}
+
+.battle-row-tooltip-body {
+  font-size: 0.48rem;
+  line-height: 1.7;
+  color: #e6eef8;
+}
+
+.battle-hud-chip {
+  font-size: 0.62rem;
+}
+
+.battle-modal-title {
+  font-size: 0.84rem;
+}
+
+.battle-modal-copy,
+.battle-modal-action {
+  font-size: 0.6rem;
+}
+
+html[data-locale="zh-CN"] .battle-command-title {
+  font-size: 1.08rem;
+  letter-spacing: 0.06em;
+}
+
+html[data-locale="zh-CN"] .battle-name-text {
+  font-size: 0.8rem;
+}
+
+html[data-locale="zh-CN"] .battle-hp-value {
+  font-size: 0.66rem;
+}
+
+html[data-locale="zh-CN"] .battle-element-value {
+  font-size: 0.8rem;
+}
+
+html[data-locale="zh-CN"] .battle-spell-label {
+  font-size: 0.92rem;
+  line-height: 1.22;
+}
+
+html[data-locale="zh-CN"] .battle-spell-damage {
+  font-size: 0.84rem;
+}
+
+html[data-locale="zh-CN"] .battle-used-badge {
+  font-size: 0.54rem;
+}
+
+html[data-locale="zh-CN"] .battle-row-tooltip-title {
+  font-size: 0.72rem;
+}
+
+html[data-locale="zh-CN"] .battle-row-tooltip-body {
+  font-size: 0.66rem;
+  line-height: 1.62;
+}
+
+html[data-locale="zh-CN"] .battle-hud-chip {
+  font-size: 0.78rem;
+}
+
+html[data-locale="zh-CN"] .battle-modal-title {
+  font-size: 1rem;
+}
+
+html[data-locale="zh-CN"] .battle-modal-copy,
+html[data-locale="zh-CN"] .battle-modal-action {
+  font-size: 0.74rem;
+  line-height: 1.78;
+}
+
+html[data-locale="zh-CN"] .battle-destiny-title {
+  font-size: 12px;
+}
+
+html[data-locale="zh-CN"] .battle-destiny-label,
+html[data-locale="zh-CN"] .battle-destiny-value {
+  font-size: 11px;
+}
+
+.battle-damage-pop {
+  animation: battle-damage-pop 900ms ease-out forwards;
 }
 
 .pixel-tag {
@@ -377,7 +956,9 @@ a {
     0.14rem 0.14rem 0 #111827,
     -0.14rem 0.14rem 0 #111827,
     0.24rem 0.24rem 0 rgba(18, 28, 48, 0.85),
-    0 0 1rem rgba(255, 194, 64, 0.4);
+    0 0 0.65rem rgba(255, 208, 96, 0.38),
+    0 0 1.1rem rgba(255, 194, 64, 0.26),
+    0 0 1.85rem rgba(255, 214, 120, 0.16);
 }
 
 .hero-title-secondary {
@@ -481,8 +1062,17 @@ a {
     0.14rem 0.14rem 0 rgba(32, 34, 40, 0.44);
 }
 
+.pixel-stone-button:hover:not(:active) {
+  filter: brightness(1.08) saturate(1.04);
+  box-shadow:
+    inset 0.1rem 0.1rem 0 rgba(235, 236, 242, 0.22),
+    inset -0.1rem -0.1rem 0 rgba(41, 43, 50, 0.32),
+    inset 0 0 0 0.06rem rgba(210, 214, 226, 0.24),
+    0.18rem 0.18rem 0 rgba(32, 34, 40, 0.5);
+}
+
 .pixel-stone-button:active {
-  transform: translate(0.08rem, 0.08rem);
+  transform: translate(0.1rem, 0.1rem);
   box-shadow:
     inset 0.08rem 0.08rem 0 rgba(235, 236, 242, 0.14),
     inset -0.08rem -0.08rem 0 rgba(41, 43, 50, 0.24),

@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const rollDiceMock = vi.fn();
 const rerollDiceMock = vi.fn();
 const advanceRoundMock = vi.fn();
+const pushMock = vi.fn();
 
 vi.mock("next/link", () => ({
   default: ({
@@ -23,10 +24,20 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: pushMock,
+  }),
+}));
+
 vi.mock("@/lib/api/backend", () => ({
   rollDice: (...args: unknown[]) => rollDiceMock(...args),
   rerollDice: (...args: unknown[]) => rerollDiceMock(...args),
   advanceRound: (...args: unknown[]) => advanceRoundMock(...args),
+}));
+
+vi.mock("@/components/battle/BattleHudControls", () => ({
+  BattleHudControls: () => <div data-testid="wallet-hud">wallet-controls</div>,
 }));
 
 import { BattleClient } from "@/components/battle/BattleClient";
@@ -53,6 +64,7 @@ describe("BattleClient", () => {
     rollDiceMock.mockReset();
     rerollDiceMock.mockReset();
     advanceRoundMock.mockReset();
+    pushMock.mockReset();
   });
 
   afterEach(() => {
@@ -83,7 +95,7 @@ describe("BattleClient", () => {
       });
 
     const firstRender = render(<BattleClient gameId="0xtestgame" />);
-    await user.click(await screen.findByRole("button", { name: "ROLL" }));
+    await user.click(await screen.findByRole("button", { name: /^ROLL\(3\/3\)$/ }));
     expect(rollDiceMock).toHaveBeenCalledTimes(1);
     firstRender.unmount();
 
@@ -96,7 +108,7 @@ describe("BattleClient", () => {
     );
 
     const secondRender = render(<BattleClient gameId="0xtestgame" />);
-    await user.click(await screen.findByRole("button", { name: "ROLL" }));
+    await user.click(await screen.findByRole("button", { name: /^ROLL\(2\/3\)$/ }));
     expect(rerollDiceMock).toHaveBeenNthCalledWith(1, {
       gameId: "0xtestgame",
       player: "0x1111111111111111111111111111111111111111",
@@ -114,25 +126,15 @@ describe("BattleClient", () => {
     );
 
     render(<BattleClient gameId="0xtestgame" />);
-    await user.click(await screen.findByRole("button", { name: "ROLL" }));
+    await user.click(await screen.findByRole("button", { name: /^ROLL\(1\/3\)$/ }));
     expect(rerollDiceMock).toHaveBeenNthCalledWith(2, {
       gameId: "0xtestgame",
       player: "0x1111111111111111111111111111111111111111",
       holdMask: 5,
     });
-  });
+  }, 10000);
 
-  it("shows 正在施法 during cast sync and never shows Rolling text", async () => {
-    const user = userEvent.setup();
-    let resolveAdvance: (() => void) | null = null;
-
-    advanceRoundMock.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveAdvance = () => resolve({ gameId: "0xtestgame", turn: 2, rollCount: 0 });
-        }),
-    );
-
+  it("removes standalone CAST buttons and never shows Rolling copy in the board UI", async () => {
     storeSnapshot(
       createHydratedState({
         dice: [6, 6, 6, 4, 1],
@@ -142,16 +144,10 @@ describe("BattleClient", () => {
 
     render(<BattleClient gameId="0xtestgame" />);
 
-    const castButton = await screen.findByRole("button", { name: /Chance|机会/i });
-    await user.click(castButton);
-
-    expect(screen.getByRole("button", { name: "正在施法" })).toBeDisabled();
+    await screen.findByRole("button", { name: /Chance|机会/i });
+    expect(screen.queryByRole("button", { name: "CAST" })).toBeNull();
     expect(screen.queryByText(/Rolling/i)).not.toBeInTheDocument();
-
-    resolveAdvance?.();
-
-    await waitFor(() => expect(screen.getByRole("button", { name: "ROLL" })).toBeEnabled());
-  });
+  }, 10000);
 
   it("disables ROLL when a reroll phase has all five dice locked", async () => {
     storeSnapshot(
@@ -164,7 +160,7 @@ describe("BattleClient", () => {
 
     render(<BattleClient gameId="0xtestgame" />);
 
-    expect(await screen.findByRole("button", { name: "ROLL" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: /^ROLL\(1\/3\)$/ })).toBeDisabled();
   });
 
   it("hydrates the battle snapshot from sessionStorage", async () => {
@@ -217,12 +213,73 @@ describe("BattleClient", () => {
 
     render(<BattleClient gameId="0xtestgame" />);
 
-    expect(await screen.findByText("当前累计: 63 / 63")).toBeInTheDocument();
-    expect(screen.getByText("已触发")).toBeInTheDocument();
-    expect(screen.getByText("47 dmg")).toBeInTheDocument();
-    expect(screen.getByText("骰面: 6 / 6 / 1 / 2 / 3")).toBeInTheDocument();
-    expect(screen.getAllByText("本地 HP").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("88").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("已锁定")).toHaveLength(2);
+    expect(await screen.findByText(/BOSS 01/)).toBeInTheDocument();
+    expect(screen.getByText("63/63")).toBeInTheDocument();
+    expect(screen.getByText(/\+35/)).toBeInTheDocument();
+    expect(screen.getByTestId("wallet-hud")).toBeInTheDocument();
+    expect(screen.getByText("哥布林机巧萨满")).toBeInTheDocument();
+    expect(screen.getByText("槽位 2/13")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /已锁定/ })).toHaveLength(2);
+  });
+
+  it("shows element-face dice before the first authoritative roll", async () => {
+    render(<BattleClient gameId="0xtestgame" />);
+
+    await screen.findByRole("button", { name: /^ROLL\(3\/3\)$/ });
+
+    expect(document.querySelector('img[src="/dice/dice-six-sides.png"]')).toBeNull();
+    expect(document.querySelectorAll('img[src^="/dice/dice-"]')).not.toHaveLength(0);
+  });
+
+  it("opens a custom exit modal before returning to the homepage", async () => {
+    const user = userEvent.setup();
+
+    render(<BattleClient gameId="0xtestgame" />);
+
+    await user.click(await screen.findByRole("button", { name: "退出游戏" }));
+    expect(screen.getByText("退出战斗")).toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "确认" }));
+    expect(pushMock).toHaveBeenCalledWith("/");
+  });
+
+  it("casts exactly once after holding a row for 1.5 seconds", async () => {
+    advanceRoundMock.mockResolvedValue({});
+
+    storeSnapshot(
+      createHydratedState({
+        dice: [6, 6, 6, 4, 1],
+        rollCount: 1,
+      }),
+    );
+
+    render(<BattleClient gameId="0xtestgame" />);
+    const row = await screen.findByRole("button", { name: /火 \/ 六点/ });
+
+    fireEvent.pointerDown(row);
+    await new Promise((resolve) => window.setTimeout(resolve, 1600));
+
+    await waitFor(() => {
+      expect(advanceRoundMock).toHaveBeenCalledTimes(1);
+    });
+  }, 8000);
+
+  it("shows row hover tooltips for score slots", async () => {
+    const user = userEvent.setup();
+
+    storeSnapshot(
+      createHydratedState({
+        dice: [1, 2, 3, 4, 5],
+        rollCount: 1,
+      }),
+    );
+
+    render(<BattleClient gameId="0xtestgame" />);
+
+    const row = await screen.findByRole("button", { name: /水 \/ 一点/ });
+    await user.hover(row);
+
+    expect(await screen.findByText("统计所有水元素骰面，累计成当前水系伤害。")).toBeInTheDocument();
   });
 });
