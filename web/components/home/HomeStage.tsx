@@ -70,15 +70,29 @@ export function HomeArt({ art }: HomeArtProps) {
       ].join(" ")}
       style={style}
     >
-      <Image
-        src={art.src}
-        alt={art.alt}
-        width={1200}
-        height={1200}
-        sizes={`${art.width}vw`}
-        className="h-auto w-full"
-        style={{ imageRendering: "pixelated" }}
-      />
+      {art.href ? (
+        <a href={art.href} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
+          <Image
+            src={art.src}
+            alt={art.alt}
+            width={1200}
+            height={1200}
+            sizes={`${art.width}vw`}
+            className="h-auto w-full"
+            style={{ imageRendering: "pixelated" }}
+          />
+        </a>
+      ) : (
+        <Image
+          src={art.src}
+          alt={art.alt}
+          width={1200}
+          height={1200}
+          sizes={`${art.width}vw`}
+          className="h-auto w-full"
+          style={{ imageRendering: "pixelated" }}
+        />
+      )}
     </div>
   );
 }

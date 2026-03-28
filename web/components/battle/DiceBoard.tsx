@@ -71,7 +71,7 @@ export function DiceBoard({
   onDiceAction,
   onToggleLock,
 }: DiceBoardProps) {
-  const { messages } = useLocale();
+  const { locale, messages } = useLocale();
   const [animatedValues, setAnimatedValues] = useState<DiceArray>(() =>
     createAnimatedDiceFrame(dice, locked),
   );
@@ -175,14 +175,22 @@ export function DiceBoard({
         })}
       </div>
 
-      <div className="mt-[12px] flex items-center justify-center">
+      <div className="mt-[12px] flex flex-col items-center justify-center gap-2.5">
+        {!finished ? (
+          <p className="pixel-font animate-pulse text-center text-[0.6rem] tracking-wider text-amber-200/90">
+            {locale === "zh-CN" ? "✦ 点击骰子可以锁定或解锁想要的元素 ✦" : "✦ Click dice to lock or unlock elements ✦"}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={onDiceAction}
           disabled={!canDiceAction || finished || isRollingVisual || isSubmittingCast}
           title={statusCopy}
           aria-label={rollLabel}
-          className="pixel-cta-button inline-flex min-h-[54px] min-w-[208px] items-center justify-center gap-3 px-5 py-3 text-[0.88rem] uppercase tracking-[0.16em] text-white disabled:cursor-not-allowed disabled:opacity-55"
+          className={[
+            "pixel-cta-button inline-flex min-h-[54px] min-w-[208px] items-center justify-center gap-3 px-5 py-3 text-[0.88rem] uppercase tracking-[0.16em] text-white disabled:cursor-not-allowed disabled:opacity-55",
+            canDiceAction && !finished && !isRollingVisual && !isSubmittingCast && !isChainPending ? "battle-roll-breathing" : ""
+          ].join(" ")}
         >
           {rollLabel}
         </button>

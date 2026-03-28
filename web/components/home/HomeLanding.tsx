@@ -135,14 +135,16 @@ export function HomeLanding({
               const label = messages.home.footerLeftLinks[index] ?? type;
 
               return (
-                <button
+                <a
                   key={label}
-                  type="button"
+                  href={getFooterLink(type)}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
                   className="pixel-stone-button footer-stone-button inline-flex shrink-0 items-center justify-center text-[#fff6c8]"
                 >
                   <FooterIcon type={type as FooterIconType} />
-                </button>
+                </a>
               );
             })}
           </div>
@@ -155,13 +157,15 @@ export function HomeLanding({
             </p>
           </div>
           <div className="flex min-w-0 flex-1 items-start justify-end">
-            <button
-              type="button"
+            <a
+              href={getFooterLink(footerRightType)}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label={footerRightLabel}
               className="pixel-stone-button footer-stone-button inline-flex shrink-0 items-center justify-center text-[#fff6c8]"
             >
               <FooterIcon type={footerRightType} />
-            </button>
+            </a>
           </div>
         </div>
       </HomeStage>
@@ -185,3 +189,13 @@ function FooterIcon({
 }
 
 type FooterIconType = "github" | "x" | "team";
+function getFooterLink(type: FooterIconType) {
+  switch (type) {
+    case "github":
+      return "https://github.com/EIP-Playground/ProtoMon-Yahtzee";
+    case "x":
+      return "https://x.com/EIP_Playground";
+    case "team":
+      return "https://www.eip-playground.com/team";
+  }
+}
