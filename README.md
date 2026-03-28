@@ -157,19 +157,19 @@ For deployment order and env requirements, see [docs/deployment-workflow.md](doc
 |------|------|------|
 | Deploy `ProtoMonGame` | Ethereum Sepolia | `0x05c25503d28f1cef762424d54c11aea1e57f32ba121ea00f0e9cb6f9f963052` |
 | Deploy `ProtoMonBadge` | Ethereum Sepolia | `0xaac37388f09032e636aef4dfc4db2178defec4e72e5052b0a4a9d1cd9af9f36ca` |
-| Deploy `ProtoMonReactiveBadge` | Reactive Lasna | `TODO: add reactive deployment tx hash if it should be surfaced separately from contract review notes` |
+| Deploy `ProtoMonReactiveBadge` | Reactive Lasna | `0x0ee3a7e04bfad6c99594db858ab7c58aac1dbd3f9dffad46bc77b9ef7be34e8d` |
 | `setAuthorizedRvmId(...)` | Ethereum Sepolia | `0x25028338ad4d1ec67644afed18483c9794d90691ec3dd4e3d34c253dd230dc5f` |
 
 ### End-to-End Workflow Transactions
 
-These are still required for final submission completeness:
+The following live workflow transactions have been confirmed onchain:
 
 | Workflow Step | Status | Transaction Hash |
 |------|------|------|
-| One successful `startGame(...)` | TODO | `TODO` |
-| One successful `playTurn(...)` | TODO | `TODO` |
-| One Reactive callback transaction | TODO | `TODO` |
-| One destination reward execution / `reactiveMint(...)` | TODO | `TODO` |
+| One successful `startGame(...)` | Confirmed | `0x645a4194005341e80087cb7de8e3bd8359980c5ba9c65ce8d87b8d960ef4b062` |
+| One successful `playTurn(...)` | Confirmed | `0x4b5f6fbb0f0d125cfdd2a7fb015f9ca0e249b912c6073073dc6bd065cb66de02` |
+| One Reactive callback transaction | Confirmed | `0xef81ed4d730b68624e0c1a881d09cb5fe17b3c1682274d076d71c952229ad43` |
+| One destination reward execution / `reactiveMint(...)` | Confirmed | `0xbefc88d8c8f45f22b68a6b4b5edf7cb1686eec2b54acfd4ff4677ee5271a5112` |
 
 ## Repository Structure
 
@@ -316,7 +316,7 @@ This section maps the current repository to the hackathon requirements.
 | Deployed contract addresses disclosed | Ready | Addresses are listed in this README. |
 | Problem and solution explained | Ready | See the Problem / Solution sections above. |
 | Post-deployment workflow described | Ready | See the workflow section above. |
-| Complete workflow tx hashes attached | Pending | Deployment tx hashes are present; live workflow tx hashes still need to be added. |
+| Complete workflow tx hashes attached | Ready | Deployment and live workflow tx hashes are attached in the transaction records section above. |
 | Demo video attached | Pending | Add final demo video link before submission. |
 
 ## Demo Video

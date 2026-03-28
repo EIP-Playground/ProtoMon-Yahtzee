@@ -158,19 +158,19 @@ ProtoMon 是一个 Reactive 驱动的链上 Roguelite 骰子战斗游戏：
 |------|------|------|
 | 部署 `ProtoMonGame` | Ethereum Sepolia | `0x05c25503d28f1cef762424d54c11aea1e57f32ba121ea00f0e9cb6f9f963052` |
 | 部署 `ProtoMonBadge` | Ethereum Sepolia | `0xaac37388f09032e636aef4dfc4db2178defec4e72e5052b0a4a9d1cd9af9f36ca` |
-| 部署 `ProtoMonReactiveBadge` | Reactive Lasna | `TODO: 如需在 README 中公开，请补充该部署 tx hash` |
+| 部署 `ProtoMonReactiveBadge` | Reactive Lasna | `0x0ee3a7e04bfad6c99594db858ab7c58aac1dbd3f9dffad46bc77b9ef7be34e8d` |
 | `setAuthorizedRvmId(...)` | Ethereum Sepolia | `0x25028338ad4d1ec67644afed18483c9794d90691ec3dd4e3d34c253dd230dc5f` |
 
 ### 完整工作流交易（待补）
 
-最终提交前，仍需补齐以下真实交易：
+以下真实工作流交易已经在链上确认：
 
 | 工作流步骤 | 状态 | 交易哈希 |
 |------|------|------|
-| 一笔成功的 `startGame(...)` | TODO | `TODO` |
-| 一笔成功的 `playTurn(...)` | TODO | `TODO` |
-| 一笔 Reactive callback 交易 | TODO | `TODO` |
-| 一笔目标奖励执行 / `reactiveMint(...)` | TODO | `TODO` |
+| 一笔成功的 `startGame(...)` | 已确认 | `0x645a4194005341e80087cb7de8e3bd8359980c5ba9c65ce8d87b8d960ef4b062` |
+| 一笔成功的 `playTurn(...)` | 已确认 | `0x4b5f6fbb0f0d125cfdd2a7fb015f9ca0e249b912c6073073dc6bd065cb66de02` |
+| 一笔 Reactive callback 交易 | 已确认 | `0xef81ed4d730b68624e0c1a881d09cb5fe17b3c1682274d076d71c952229ad43` |
+| 一笔目标奖励执行 / `reactiveMint(...)` | 已确认 | `0xbefc88d8c8f45f22b68a6b4b5edf7cb1686eec2b54acfd4ff4677ee5271a5112` |
 
 ## 项目结构
 
@@ -317,7 +317,7 @@ pnpm build
 | 公示已部署合约地址 | 已满足 | 本 README 已列出地址。 |
 | 解释问题与解决方案 | 已满足 | 见上方问题 / 解决方案章节。 |
 | 提供部署后工作流说明 | 已满足 | 见部署后工作流章节。 |
-| 提供完整工作流 tx hashes | 待补 | 已有部署交易，但 live workflow tx 还需补齐。 |
+| 提供完整工作流 tx hashes | 已满足 | 部署交易和 live workflow 交易已在上方交易记录章节列出。 |
 | 提交 demo video | 待补 | 最终提交前补充视频链接。 |
 
 ## 演示视频
