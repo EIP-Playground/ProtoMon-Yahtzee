@@ -5,16 +5,15 @@ export const EMPTY_LOCKED_DICE: LockedDice = [false, false, false, false, false]
 export const DICE_ELEMENT_MAP: Record<
   DiceValue,
   {
-    emoji: string;
     label: string;
   }
 > = {
-  1: { emoji: "💧", label: "Water" },
-  2: { emoji: "⚙️", label: "Metal" },
-  3: { emoji: "🪨", label: "Earth" },
-  4: { emoji: "💨", label: "Air" },
-  5: { emoji: "🌿", label: "Wood" },
-  6: { emoji: "🔥", label: "Fire" },
+  1: { label: "Water" },
+  2: { label: "Metal" },
+  3: { label: "Earth" },
+  4: { label: "Air" },
+  5: { label: "Wood" },
+  6: { label: "Fire" },
 };
 
 export function lockedToHoldMask(locked: LockedDice) {

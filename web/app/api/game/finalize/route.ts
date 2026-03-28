@@ -34,6 +34,10 @@ export async function POST(request: Request) {
     }
 
     if (session.finalized) {
+      if (session.finalizedProof) {
+        return Response.json(session.finalizedProof);
+      }
+
       throw new ApiRouteError(409, "ROUND_FINALIZED", "The current round has already been finalized.");
     }
 
@@ -59,6 +63,7 @@ export async function POST(request: Request) {
     await saveBackendGameSession({
       ...session,
       finalized: true,
+      finalizedProof: proof,
     });
 
     return Response.json(proof);

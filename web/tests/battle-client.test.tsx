@@ -6,7 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const rollDiceMock = vi.fn();
 const rerollDiceMock = vi.fn();
+const finalizeRoundMock = vi.fn();
 const advanceRoundMock = vi.fn();
+const sendCastTurnUserOpMock = vi.fn();
+const waitForTurnPlayedMock = vi.fn();
+const createAndStartBattleSessionMock = vi.fn();
+const getConnectedSenderAddressMock = vi.fn();
 const pushMock = vi.fn();
 
 vi.mock("next/link", () => ({
@@ -33,7 +38,18 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/api/backend", () => ({
   rollDice: (...args: unknown[]) => rollDiceMock(...args),
   rerollDice: (...args: unknown[]) => rerollDiceMock(...args),
+  finalizeRound: (...args: unknown[]) => finalizeRoundMock(...args),
   advanceRound: (...args: unknown[]) => advanceRoundMock(...args),
+}));
+
+vi.mock("@/lib/chain/gameContract", () => ({
+  getConnectedSenderAddress: (...args: unknown[]) => getConnectedSenderAddressMock(...args),
+  sendCastTurnUserOp: (...args: unknown[]) => sendCastTurnUserOpMock(...args),
+  waitForTurnPlayed: (...args: unknown[]) => waitForTurnPlayedMock(...args),
+}));
+
+vi.mock("@/lib/game/session", () => ({
+  createAndStartBattleSession: (...args: unknown[]) => createAndStartBattleSessionMock(...args),
 }));
 
 vi.mock("@/components/battle/BattleHudControls", () => ({
@@ -44,12 +60,14 @@ import { BattleClient } from "@/components/battle/BattleClient";
 import { createInitialBattleState, saveBattleStateSnapshot } from "@/store/battleStore";
 import type { BattleState, DiceArray } from "@/types/game";
 
+const INITIAL_SEED = {
+  smartAccount: "0x1111111111111111111111111111111111111111",
+  rewardRecipient: "0x2222222222222222222222222222222222222222",
+} as const;
+
 function createHydratedState(overrides: Partial<BattleState> = {}): BattleState {
   return {
-    ...createInitialBattleState("0xtestgame", {
-      smartAccount: "0x1111111111111111111111111111111111111111",
-      rewardRecipient: "0x2222222222222222222222222222222222222222",
-    }),
+    ...createInitialBattleState("0xtestgame", INITIAL_SEED),
     ...overrides,
   };
 }
@@ -58,13 +76,23 @@ function storeSnapshot(state: BattleState) {
   saveBattleStateSnapshot(state, window.sessionStorage);
 }
 
+function renderBattleClient() {
+  return render(<BattleClient gameId="0xtestgame" initialStateSeed={INITIAL_SEED} />);
+}
+
 describe("BattleClient", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     rollDiceMock.mockReset();
     rerollDiceMock.mockReset();
+    finalizeRoundMock.mockReset();
     advanceRoundMock.mockReset();
+    sendCastTurnUserOpMock.mockReset();
+    waitForTurnPlayedMock.mockReset();
+    createAndStartBattleSessionMock.mockReset();
+    getConnectedSenderAddressMock.mockReset();
     pushMock.mockReset();
+    getConnectedSenderAddressMock.mockResolvedValue(INITIAL_SEED.smartAccount);
   });
 
   afterEach(() => {
@@ -94,9 +122,13 @@ describe("BattleClient", () => {
         dice: [1, 2, 3, 5, 6] as DiceArray,
       });
 
-    const firstRender = render(<BattleClient gameId="0xtestgame" />);
+    const firstRender = renderBattleClient();
     await user.click(await screen.findByRole("button", { name: /^ROLL\(3\/3\)$/ }));
     expect(rollDiceMock).toHaveBeenCalledTimes(1);
+    expect(rollDiceMock).toHaveBeenCalledWith({
+      gameId: "0xtestgame",
+      player: INITIAL_SEED.smartAccount,
+    });
     firstRender.unmount();
 
     window.sessionStorage.clear();
@@ -107,11 +139,11 @@ describe("BattleClient", () => {
       }),
     );
 
-    const secondRender = render(<BattleClient gameId="0xtestgame" />);
+    const secondRender = renderBattleClient();
     await user.click(await screen.findByRole("button", { name: /^ROLL\(2\/3\)$/ }));
     expect(rerollDiceMock).toHaveBeenNthCalledWith(1, {
       gameId: "0xtestgame",
-      player: "0x1111111111111111111111111111111111111111",
+      player: INITIAL_SEED.smartAccount,
       holdMask: 0,
     });
     secondRender.unmount();
@@ -125,11 +157,11 @@ describe("BattleClient", () => {
       }),
     );
 
-    render(<BattleClient gameId="0xtestgame" />);
+    renderBattleClient();
     await user.click(await screen.findByRole("button", { name: /^ROLL\(1\/3\)$/ }));
     expect(rerollDiceMock).toHaveBeenNthCalledWith(2, {
       gameId: "0xtestgame",
-      player: "0x1111111111111111111111111111111111111111",
+      player: INITIAL_SEED.smartAccount,
       holdMask: 5,
     });
   }, 10000);
@@ -142,7 +174,7 @@ describe("BattleClient", () => {
       }),
     );
 
-    render(<BattleClient gameId="0xtestgame" />);
+    renderBattleClient();
 
     await screen.findByRole("button", { name: /Chance|机会/i });
     expect(screen.queryByRole("button", { name: "CAST" })).toBeNull();
@@ -158,7 +190,7 @@ describe("BattleClient", () => {
       }),
     );
 
-    render(<BattleClient gameId="0xtestgame" />);
+    renderBattleClient();
 
     expect(await screen.findByRole("button", { name: /^ROLL\(1\/3\)$/ })).toBeDisabled();
   });
@@ -211,7 +243,7 @@ describe("BattleClient", () => {
       }),
     );
 
-    render(<BattleClient gameId="0xtestgame" />);
+    renderBattleClient();
 
     expect(await screen.findByText(/BOSS 01/)).toBeInTheDocument();
     expect(screen.getByText("63/63")).toBeInTheDocument();
@@ -223,7 +255,7 @@ describe("BattleClient", () => {
   });
 
   it("shows element-face dice before the first authoritative roll", async () => {
-    render(<BattleClient gameId="0xtestgame" />);
+    renderBattleClient();
 
     await screen.findByRole("button", { name: /^ROLL\(3\/3\)$/ });
 
@@ -234,7 +266,7 @@ describe("BattleClient", () => {
   it("opens a custom exit modal before returning to the homepage", async () => {
     const user = userEvent.setup();
 
-    render(<BattleClient gameId="0xtestgame" />);
+    renderBattleClient();
 
     await user.click(await screen.findByRole("button", { name: "退出游戏" }));
     expect(screen.getByText("退出战斗")).toBeInTheDocument();
@@ -245,7 +277,43 @@ describe("BattleClient", () => {
   });
 
   it("casts exactly once after holding a row for 1.5 seconds", async () => {
-    advanceRoundMock.mockResolvedValue({});
+    finalizeRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      player: INITIAL_SEED.smartAccount,
+      rewardRecipient: INITIAL_SEED.rewardRecipient,
+      turn: 1,
+      finalRollCount: 1,
+      dice: [6, 6, 6, 4, 1],
+      expiry: Math.floor(Date.now() / 1000) + 600,
+      chainId: 11155111,
+      verifyingContract: "0x743aAd4ab89EaE037Fce8f69bB8e0937B566C9f1",
+      backendSig: `0x${"1".repeat(130)}`,
+    });
+    sendCastTurnUserOpMock.mockResolvedValue({
+      txHash: `0x${"2".repeat(64)}`,
+    });
+    waitForTurnPlayedMock.mockResolvedValue({
+      event: {
+        eventName: "TurnPlayed",
+        args: {
+          gameId: "0xtestgame",
+          player: INITIAL_SEED.smartAccount,
+          rewardRecipient: INITIAL_SEED.rewardRecipient,
+          turn: 1,
+          slotId: 5,
+          damage: 18,
+          bossHpAfter: 132,
+          upperSubtotalAfter: 18,
+          usedSlotsBitmap: 32,
+          won: false,
+        },
+      },
+    });
+    advanceRoundMock.mockResolvedValue({
+      gameId: "0xtestgame",
+      turn: 2,
+      rollCount: 0,
+    });
 
     storeSnapshot(
       createHydratedState({
@@ -254,13 +322,16 @@ describe("BattleClient", () => {
       }),
     );
 
-    render(<BattleClient gameId="0xtestgame" />);
+    renderBattleClient();
     const row = await screen.findByRole("button", { name: /火 \/ 六点/ });
 
     fireEvent.pointerDown(row);
     await new Promise((resolve) => window.setTimeout(resolve, 1600));
 
     await waitFor(() => {
+      expect(finalizeRoundMock).toHaveBeenCalledTimes(1);
+      expect(sendCastTurnUserOpMock).toHaveBeenCalledTimes(1);
+      expect(waitForTurnPlayedMock).toHaveBeenCalledTimes(1);
       expect(advanceRoundMock).toHaveBeenCalledTimes(1);
     });
   }, 8000);
@@ -275,7 +346,7 @@ describe("BattleClient", () => {
       }),
     );
 
-    render(<BattleClient gameId="0xtestgame" />);
+    renderBattleClient();
 
     const row = await screen.findByRole("button", { name: /水 \/ 一点/ });
     await user.hover(row);

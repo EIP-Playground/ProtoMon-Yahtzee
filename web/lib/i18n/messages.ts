@@ -234,7 +234,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       createMessages: [
         "正在锻造挑战房间…",
         "向 Upstash 发出开局请求…",
-        "绑定 Demo Player 会话…",
+        "绑定链上战斗会话…",
         "注入 Boss 初始状态…",
         "为你展开第一场试炼…",
       ],
@@ -282,7 +282,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       footerCopyright: "© 2026 EIP-Playground ProtoMon",
       footerLeftLinks: ["GitHub", "X"],
       footerRightLinks: ["Team"],
-      errorCreateGame: "创建 Demo 对战失败。",
+      errorCreateGame: "创建战斗房间失败。",
     },
     battle: {
       boardEyebrow: "经典战斗面板",
@@ -292,7 +292,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       gameIdLabel: "gameId",
       restoringSnapshot: "正在恢复本地战斗快照…",
       restoredSnapshot: "已从当前标签页恢复本地战斗快照。",
-      initialStatus: "第一次掷骰由后端权威生成；本阶段 CAST 仍为本地结算。",
+      initialStatus: "第一次掷骰由后端权威生成；每次释放都会在链上完成结算。",
       requestingDice: "正在向云端发牌器请求权威骰面…",
       diceReceivedFirst: "已收到权威骰面。锁定想保留的骰子，然后再次按 ROLL。",
       diceReceivedReroll: "后端重掷已同步。已锁定的骰子会继续高亮，方便下一次决策。",
@@ -434,12 +434,12 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           },
         },
         slotTitles: {
-          Upper1: "💧 水 / 一点",
-          Upper2: "⚙️ 金 / 两点",
-          Upper3: "🪨 土 / 三点",
-          Upper4: "💨 风 / 四点",
-          Upper5: "🌿 木 / 五点",
-          Upper6: "🔥 火 / 六点",
+          Upper1: "水 / 一点",
+          Upper2: "金 / 两点",
+          Upper3: "土 / 三点",
+          Upper4: "风 / 四点",
+          Upper5: "木 / 五点",
+          Upper6: "火 / 六点",
           ThreeKind: "三条",
           FourKind: "四条",
           FullHouse: "葫芦",
@@ -460,7 +460,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       },
       session: {
         eyebrow: "会话网关",
-        description: "Demo 模式。钱包与 session key 暂时旁路，当前只接后端权威骰面与本地结算。",
+        description: "当前版本已接入钱包与链上结算；session key / 4337 会在下一阶段替换普通 sender。",
       },
       finish: {
         victoryTitle: "胜利",
@@ -542,7 +542,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       createMessages: [
         "Forging the battle room…",
         "Sending the start request to Upstash…",
-        "Binding the demo player session…",
+        "Binding the on-chain battle session…",
         "Seeding the boss state…",
         "Opening the first trial…",
       ],
@@ -590,7 +590,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       footerCopyright: "© 2026 EIP-Playground ProtoMon",
       footerLeftLinks: ["GitHub", "X"],
       footerRightLinks: ["Team"],
-      errorCreateGame: "Failed to create a demo game.",
+      errorCreateGame: "Failed to create the battle room.",
     },
     battle: {
       boardEyebrow: "Classic Battle Board",
@@ -601,7 +601,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       gameIdLabel: "gameId",
       restoringSnapshot: "Restoring local battle snapshot…",
       restoredSnapshot: "Recovered the local battle snapshot from this tab.",
-      initialStatus: "First roll uses backend authority. CAST stays local-only in this phase.",
+      initialStatus: "The first roll uses backend authority. Every cast settles on chain.",
       requestingDice: "Requesting authoritative dice from the cloud dealer…",
       diceReceivedFirst: "Authoritative dice received. Lock what you want to keep, then press ROLL again.",
       diceReceivedReroll:
@@ -745,12 +745,12 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
           },
         },
         slotTitles: {
-          Upper1: "💧 Water / Ones",
-          Upper2: "⚙️ Metal / Twos",
-          Upper3: "🪨 Earth / Threes",
-          Upper4: "💨 Air / Fours",
-          Upper5: "🌿 Wood / Fives",
-          Upper6: "🔥 Fire / Sixes",
+          Upper1: "Water / Ones",
+          Upper2: "Metal / Twos",
+          Upper3: "Earth / Threes",
+          Upper4: "Air / Fours",
+          Upper5: "Wood / Fives",
+          Upper6: "Fire / Sixes",
           ThreeKind: "Triple Strike",
           FourKind: "Quad Breaker",
           FullHouse: "Full House",
@@ -772,7 +772,7 @@ export const MESSAGES: Record<Locale, LocaleMessages> = {
       session: {
         eyebrow: "Session Gate",
         description:
-          "Demo mode. Wallet and session-key plumbing are bypassed for now. This build only wires backend-authoritative dice with local resolution.",
+          "Wallet-linked on-chain settlement is live. Session-key / 4337 automation lands in the next phase.",
       },
       finish: {
         victoryTitle: "Victory",

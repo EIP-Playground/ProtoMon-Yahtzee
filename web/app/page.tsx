@@ -8,8 +8,8 @@ import { BackToTopButton } from "@/components/home/BackToTopButton";
 import { HomeLanding } from "@/components/home/HomeLanding";
 import { LoadingPage } from "@/components/loading/LoadingPage";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { createGameSession } from "@/lib/api/backend";
-import { DEMO_PLAYER, DEMO_REWARD_RECIPIENT } from "@/lib/game/demo";
+import { getConnectedSenderAddress } from "@/lib/chain/gameContract";
+import { createAndStartBattleSession } from "@/lib/game/session";
 import { preloadBattleAssets } from "@/lib/ui/battleAssets";
 import { LOADING_MIN_CREATE_DURATION_MS } from "@/lib/ui/loading";
 
@@ -80,9 +80,10 @@ export default function Home() {
     const battleAssetsPromise = preloadBattleAssets();
 
     try {
-      const sessionPromise = createGameSession({
-        player: DEMO_PLAYER,
-        rewardRecipient: DEMO_REWARD_RECIPIENT,
+      const sender = await getConnectedSenderAddress();
+      const sessionPromise = createAndStartBattleSession({
+        player: sender,
+        rewardRecipient: sender,
         bossId: 1,
       });
       const session = await sessionPromise;

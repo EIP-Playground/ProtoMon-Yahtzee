@@ -61,6 +61,8 @@ describe("game api routes", () => {
     rerollWithMaskMock.mockReturnValue(rerolledDice);
     process.env.NEXT_PUBLIC_CHAIN_ID = "84532";
     process.env.NEXT_PUBLIC_PROTO_MON_GAME_ADDRESS = ZERO_ADDRESS;
+    process.env.BACKEND_DEALER_PRIVATE_KEY =
+      "0x070beb615c5514c64d37d4b49b6385e6bab11e45ddeadba77703e6e69f6f8c64";
   });
 
   it("creates a session with boss hp and empty dice state", async () => {
@@ -275,7 +277,7 @@ describe("game api routes", () => {
       verifyingContract: ZERO_ADDRESS,
     });
     expect(proof.expiry).toBeGreaterThan(0);
-    expect(proof.backendSig).toMatch(/^0x[a-f0-9]{64}$/);
+    expect(proof.backendSig).toMatch(/^0x[a-f0-9]{130}$/);
 
     const rerollResponse = await rerollGame(
       jsonRequest("/api/game/reroll", {

@@ -4,7 +4,8 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const pushMock = vi.fn();
-const createGameSessionMock = vi.fn();
+const createAndStartBattleSessionMock = vi.fn();
+const getConnectedSenderAddressMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -12,8 +13,12 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("@/lib/api/backend", () => ({
-  createGameSession: (...args: unknown[]) => createGameSessionMock(...args),
+vi.mock("@/lib/game/session", () => ({
+  createAndStartBattleSession: (...args: unknown[]) => createAndStartBattleSessionMock(...args),
+}));
+
+vi.mock("@/lib/chain/gameContract", () => ({
+  getConnectedSenderAddress: (...args: unknown[]) => getConnectedSenderAddressMock(...args),
 }));
 
 vi.mock("@/components/loading/LoadingPage", () => ({
@@ -53,7 +58,9 @@ describe("Home loading flows", () => {
     vi.useFakeTimers();
     window.sessionStorage.clear();
     pushMock.mockReset();
-    createGameSessionMock.mockReset();
+    createAndStartBattleSessionMock.mockReset();
+    getConnectedSenderAddressMock.mockReset();
+    getConnectedSenderAddressMock.mockResolvedValue("0x1111111111111111111111111111111111111111");
   });
 
   it("shows the shared loading component on first entry", async () => {
@@ -83,7 +90,7 @@ describe("Home loading flows", () => {
 
   it("keeps create-game loading on screen for at least 2600ms and finishes before navigation", async () => {
     window.sessionStorage.setItem("protomon:entry-loading:seen", "1");
-    createGameSessionMock.mockResolvedValue({
+    createAndStartBattleSessionMock.mockResolvedValue({
       gameId: "0xtestgame",
     });
 

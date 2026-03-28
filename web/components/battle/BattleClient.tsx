@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import { IoPowerSharp } from "react-icons/io5";
 
-import { advanceRound, createGameSession, rerollDice, rollDice } from "@/lib/api/backend";
+import { advanceRound, finalizeRound, rerollDice, rollDice } from "@/lib/api/backend";
 import { BattleStage } from "@/components/battle/BattleStage";
 import { DiceBoard } from "@/components/battle/DiceBoard";
 import { PassiveItemsPanel } from "@/components/battle/PassiveItemsPanel";
@@ -18,8 +18,14 @@ import {
   BATTLE_BOSS_DISPLAY,
   BATTLE_SCENE_LAYOUT,
 } from "@/lib/battle/config";
+import {
+  getConnectedSenderAddress,
+  sendCastTurnUserOp,
+  waitForTurnPlayed,
+} from "@/lib/chain/gameContract";
 import { lockedToHoldMask } from "@/lib/game/dice";
-import { DEMO_PLAYER, DEMO_REWARD_RECIPIENT } from "@/lib/game/demo";
+import { createAndStartBattleSession } from "@/lib/game/session";
+import { bitmapToSlots, getUsedSlotsCount } from "@/lib/game/slots";
 import {
   applyLocalCast,
   applyRollResult,
@@ -28,7 +34,7 @@ import {
   saveBattleStateSnapshot,
   toggleLockedDie,
 } from "@/store/battleStore";
-import type { SyncStatus } from "@/types/game";
+import type { BattleState, SyncStatus, TurnPlayedEvent } from "@/types/game";
 
 const ROLL_VISUAL_MIN_MS = 700;
 const BOARD_BASE_WIDTH = 1300;
@@ -89,16 +95,14 @@ function getHudSyncMeta(locale: "zh-CN" | "en", status: SyncStatus) {
 
 type BattleClientProps = {
   gameId: string;
+  initialStateSeed?: Parameters<typeof createInitialBattleState>[1];
 };
 
-export function BattleClient({ gameId }: BattleClientProps) {
+export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   const router = useRouter();
   const { locale, messages } = useLocale();
   const [state, setState] = useState(() =>
-    createInitialBattleState(gameId, {
-      smartAccount: DEMO_PLAYER,
-      rewardRecipient: DEMO_REWARD_RECIPIENT,
-    }),
+    createInitialBattleState(gameId, initialStateSeed),
   );
   const [isSnapshotReady, setIsSnapshotReady] = useState(false);
   const [boardScale, setBoardScale] = useState(1);
@@ -115,21 +119,25 @@ export function BattleClient({ gameId }: BattleClientProps) {
   const [, startTransition] = useTransition();
 
   useEffect(() => {
-    const initialState = createInitialBattleState(gameId, {
-      smartAccount: DEMO_PLAYER,
-      rewardRecipient: DEMO_REWARD_RECIPIENT,
-    });
+    const initialState = createInitialBattleState(gameId, initialStateSeed);
     const restoredState = loadBattleStateSnapshot(gameId);
+    const hydratedState = restoredState
+      ? {
+          ...restoredState,
+          smartAccount: initialState.smartAccount,
+          rewardRecipient: initialState.rewardRecipient,
+        }
+      : initialState;
     const timeoutId = window.setTimeout(() => {
       setIsSnapshotReady(false);
-      setState(restoredState ?? initialState);
+      setState(hydratedState);
       setIsSnapshotReady(true);
     }, 0);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [gameId]);
+  }, [gameId, initialStateSeed]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -240,6 +248,31 @@ export function BattleClient({ gameId }: BattleClientProps) {
   );
   const slotProgressDisplay = state.finished ? 13 : Math.min(usedSlotsCount + 1, 13);
 
+  function reconcileConfirmedTurn(
+    optimisticState: BattleState,
+    slotId: number,
+    nextTurn: number | null,
+    event: TurnPlayedEvent,
+  ) {
+    const usedSlots = bitmapToSlots(event.args.usedSlotsBitmap);
+    const finished = event.args.won || getUsedSlotsCount(usedSlots) >= 13;
+
+    return {
+      ...optimisticState,
+      bossHpLocal: event.args.bossHpAfter,
+      bossHpChain: event.args.bossHpAfter,
+      usedSlots,
+      upperSubtotalLocal: event.args.upperSubtotalAfter,
+      upperBonusClaimedLocal:
+        optimisticState.upperBonusClaimedLocal || optimisticState.slotResults[slotId]?.bonusDamage === 35,
+      finished,
+      won: event.args.won,
+      turn: nextTurn ?? optimisticState.turn,
+      castActionState: "idle" as const,
+      syncStatus: "CONFIRMED" as const,
+    };
+  }
+
   async function runDiceAction(action: () => Promise<Awaited<ReturnType<typeof rollDice>>>) {
     setState((currentState) => ({
       ...currentState,
@@ -288,7 +321,7 @@ export function BattleClient({ gameId }: BattleClientProps) {
     if (state.rollCount === 0) {
       void runDiceAction(() =>
         rollDice({
-          gameId: state.gameId,
+          gameId: state.gameId as `0x${string}`,
           player: state.smartAccount,
         }),
       );
@@ -298,7 +331,7 @@ export function BattleClient({ gameId }: BattleClientProps) {
     if (state.rollCount < 3) {
       void runDiceAction(() =>
         rerollDice({
-          gameId: state.gameId,
+          gameId: state.gameId as `0x${string}`,
           player: state.smartAccount,
           holdMask: lockedToHoldMask(state.locked),
         }),
@@ -326,6 +359,7 @@ export function BattleClient({ gameId }: BattleClientProps) {
       return;
     }
 
+    const previousState = state;
     const nextState = applyLocalCast(state, slotId);
     setCastingSlotId(slotId);
     const castResult = nextState.slotResults[slotId];
@@ -350,41 +384,74 @@ export function BattleClient({ gameId }: BattleClientProps) {
     startTransition(() => {
       setState({
         ...nextState,
-        castActionState: nextState.finished ? "idle" : "waiting",
+        castActionState: "waiting",
+        syncStatus: "PENDING_CHAIN",
+        pendingTxHash: undefined,
       });
     });
 
-    if (!nextState.finished) {
-      void (async () => {
+    void (async () => {
+      try {
+        const proof = await finalizeRound({
+          gameId: state.gameId as `0x${string}`,
+          player: state.smartAccount,
+          rewardRecipient: state.rewardRecipient,
+        });
+        const { txHash } = await sendCastTurnUserOp({
+          gameId: state.gameId as `0x${string}`,
+          slotId,
+          proof,
+        });
+
+        startTransition(() => {
+          setState((currentState) => ({
+            ...currentState,
+            pendingTxHash: txHash,
+            syncStatus: "PENDING_CHAIN",
+          }));
+        });
+
+        const { event } = await waitForTurnPlayed(txHash);
+        const chainConfirmedState = reconcileConfirmedTurn(nextState, slotId, null, event);
+
         try {
-          await advanceRound({
-            gameId: state.gameId,
-            player: state.smartAccount,
-            nextTurn: nextState.turn,
-          });
+          let advancedTurn: number | null = null;
+
+          if (!(event.args.won || getUsedSlotsCount(bitmapToSlots(event.args.usedSlotsBitmap)) >= 13)) {
+            const advanced = await advanceRound({
+              gameId: state.gameId as `0x${string}`,
+              player: state.smartAccount,
+              nextTurn: event.args.turn + 1,
+            });
+
+            advancedTurn = advanced.turn;
+          }
 
           startTransition(() => {
-            setState((currentState) => ({
-              ...currentState,
-              castActionState: "idle",
-              syncStatus: "LOCAL_APPLIED",
-            }));
+            setState(reconcileConfirmedTurn(nextState, slotId, advancedTurn, event));
             setCastingSlotId(null);
           });
         } catch {
           startTransition(() => {
-            setState((currentState) => ({
-              ...currentState,
-              castActionState: "idle",
+            setState({
+              ...chainConfirmedState,
               syncStatus: "RETRYABLE_FAIL",
-            }));
+            });
             setCastingSlotId(null);
           });
         }
-      })();
-    } else {
-      setCastingSlotId(null);
-    }
+      } catch {
+        startTransition(() => {
+          setState({
+            ...previousState,
+            castActionState: "idle",
+            syncStatus: "RETRYABLE_FAIL",
+            pendingTxHash: undefined,
+          });
+          setCastingSlotId(null);
+        });
+      }
+    })();
   }
 
   function handleExitBattle() {
@@ -413,9 +480,10 @@ export function BattleClient({ gameId }: BattleClientProps) {
     setIsRetryingRoom(true);
 
     try {
-      const session = await createGameSession({
-        player: DEMO_PLAYER,
-        rewardRecipient: DEMO_REWARD_RECIPIENT,
+      const sender = await getConnectedSenderAddress();
+      const session = await createAndStartBattleSession({
+        player: sender,
+        rewardRecipient: sender,
         bossId: 1,
       });
 

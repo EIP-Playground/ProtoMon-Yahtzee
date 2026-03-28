@@ -28,28 +28,44 @@ export function createInitialBattleState(
   options?: {
     smartAccount?: HexAddress;
     rewardRecipient?: HexAddress;
+    bossHpLocal?: number;
+    bossHpChain?: number;
+    turn?: number;
+    rollCount?: number;
+    dice?: DiceArray | null;
+    locked?: LockedDice;
+    selectedSlotId?: number | null;
+    usedSlots?: Record<number, boolean>;
+    slotResults?: BattleState["slotResults"];
+    upperSubtotalLocal?: number;
+    upperBonusClaimedLocal?: boolean;
+    syncStatus?: BattleState["syncStatus"];
+    finished?: boolean;
+    won?: boolean;
+    pendingTxHash?: BattleState["pendingTxHash"];
   },
 ): BattleState {
   return {
     gameId,
     smartAccount: options?.smartAccount ?? ZERO_ADDRESS,
     rewardRecipient: options?.rewardRecipient ?? ZERO_ADDRESS,
-    bossHpLocal: BOSS_1.targetHp,
-    bossHpChain: BOSS_1.targetHp,
-    turn: 1,
-    rollCount: 0,
-    dice: null,
-    locked: EMPTY_LOCKED_DICE,
-    selectedSlotId: null,
-    usedSlots: createEmptyUsedSlots(),
-    slotResults: createEmptySlotResults(),
-    upperSubtotalLocal: 0,
-    upperBonusClaimedLocal: false,
-    syncStatus: "LOCAL_APPLIED",
-    finished: false,
-    won: false,
+    bossHpLocal: options?.bossHpLocal ?? BOSS_1.targetHp,
+    bossHpChain: options?.bossHpChain ?? options?.bossHpLocal ?? BOSS_1.targetHp,
+    turn: options?.turn ?? 1,
+    rollCount: options?.rollCount ?? 0,
+    dice: options?.dice ?? null,
+    locked: options?.locked ?? EMPTY_LOCKED_DICE,
+    selectedSlotId: options?.selectedSlotId ?? null,
+    usedSlots: options?.usedSlots ?? createEmptyUsedSlots(),
+    slotResults: options?.slotResults ?? createEmptySlotResults(),
+    upperSubtotalLocal: options?.upperSubtotalLocal ?? 0,
+    upperBonusClaimedLocal: options?.upperBonusClaimedLocal ?? false,
+    syncStatus: options?.syncStatus ?? "LOCAL_APPLIED",
+    finished: options?.finished ?? false,
+    won: options?.won ?? false,
     diceActionState: "idle",
     castActionState: "idle",
+    pendingTxHash: options?.pendingTxHash,
   };
 }
 
