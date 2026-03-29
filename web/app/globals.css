@@ -170,11 +170,11 @@ a {
 
   0%,
   100% {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 
   50% {
-    transform: translateY(-10px);
+    transform: translate3d(0, -7px, 0);
   }
 }
 
@@ -1189,7 +1189,15 @@ html[data-locale="zh-CN"] .battle-destiny-value {
 }
 
 .protomon-card-float {
-  animation: card-float 4.4s ease-in-out infinite;
+  animation: card-float 4.6s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.home-floating-art {
+  backface-visibility: hidden;
+  contain: paint;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .portal-float {

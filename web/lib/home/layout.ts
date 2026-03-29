@@ -15,6 +15,8 @@ export type HomeArtConfig = {
   rotate?: number;
   className?: string;
   animationDelayMs?: number;
+  intrinsicWidth?: number;
+  intrinsicHeight?: number;
   glowVariant?: "fire" | "water" | "wood" | "portal-active" | "portal-inactive";
   href?: string;
 };
@@ -117,6 +119,8 @@ export const MEET_CARD_ART: readonly HomeArtConfig[] = [
     zIndex: 16,
     className: "protomon-card-float",
     animationDelayMs: 0,
+    intrinsicWidth: 277,
+    intrinsicHeight: 390,
   },
   {
     src: "/home/meet-protomon-section/protomon-002-card-transparent.png",
@@ -131,6 +135,8 @@ export const MEET_CARD_ART: readonly HomeArtConfig[] = [
     zIndex: 18,
     className: "protomon-card-float",
     animationDelayMs: 700,
+    intrinsicWidth: 277,
+    intrinsicHeight: 388,
   },
   {
     src: "/home/meet-protomon-section/protomon-003-card-transparent.png",
@@ -145,6 +151,8 @@ export const MEET_CARD_ART: readonly HomeArtConfig[] = [
     zIndex: 16,
     className: "protomon-card-float",
     animationDelayMs: 1400,
+    intrinsicWidth: 277,
+    intrinsicHeight: 388,
   },
 ];
 
