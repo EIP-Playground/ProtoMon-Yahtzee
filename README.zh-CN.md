@@ -301,7 +301,6 @@ pnpm build
 
 - `GameWon -> Reactive -> Destination` 的完整真实链上证明材料
 - 最终提交所需的完整工作流 tx hashes
-- demo video 链接
 - 可稳定使用的 ERC-4337 session-key UX
 - 如果需要最终 NFT 标准资产，还需要升级当前 Destination 奖励合约
 
@@ -318,11 +317,11 @@ pnpm build
 | 解释问题与解决方案 | 已满足 | 见上方问题 / 解决方案章节。 |
 | 提供部署后工作流说明 | 已满足 | 见部署后工作流章节。 |
 | 提供完整工作流 tx hashes | 已满足 | 部署交易和 live workflow 交易已在上方交易记录章节列出。 |
-| 提交 demo video | 待补 | 最终提交前补充视频链接。 |
+| 提交 demo video | 已满足 | 下方已附公开视频链接。 |
 
 ## 演示视频
 
-- **Demo video**：`TODO: 补充最终公开视频链接`
+- **Demo video**：https://youtu.be/es3eoCkF-TE
 
 ## 团队
 

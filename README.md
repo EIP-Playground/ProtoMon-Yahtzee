@@ -300,7 +300,6 @@ pnpm build
 
 - complete live proof of the `GameWon -> Reactive -> Destination` reward path
 - final submission-grade workflow tx hash collection
-- demo video link
 - production-ready ERC-4337 session-key UX
 - final NFT-standard reward contract upgrade, if required beyond reward recording
 
@@ -317,11 +316,11 @@ This section maps the current repository to the hackathon requirements.
 | Problem and solution explained | Ready | See the Problem / Solution sections above. |
 | Post-deployment workflow described | Ready | See the workflow section above. |
 | Complete workflow tx hashes attached | Ready | Deployment and live workflow tx hashes are attached in the transaction records section above. |
-| Demo video attached | Pending | Add final demo video link before submission. |
+| Demo video attached | Ready | Public demo video link is attached below. |
 
 ## Demo Video
 
-- **Demo video**: `TODO: add final public demo video link`
+- **Demo video**: https://youtu.be/es3eoCkF-TE
 
 ## Team
 
