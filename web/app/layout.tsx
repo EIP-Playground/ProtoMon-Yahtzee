@@ -28,8 +28,9 @@ const zpix = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "ProtoMon MVP",
-  description: "ProtoMon MVP web shell for the hackathon implementation flow.",
+  title: "ProtoMon",
+  description:
+    "ProtoMon is a reactive onchain roguelite dice battler with instant-feeling turns and automatic cross-chain rewards.",
 };
 
 export default function RootLayout({
