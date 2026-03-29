@@ -158,10 +158,10 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
     const restoredState = loadBattleStateSnapshot(gameId);
     const hydratedState = restoredState
       ? {
-          ...restoredState,
-          smartAccount: initialState.smartAccount,
-          rewardRecipient: initialState.rewardRecipient,
-        }
+        ...restoredState,
+        smartAccount: initialState.smartAccount,
+        rewardRecipient: initialState.rewardRecipient,
+      }
       : initialState;
     const timeoutId = window.setTimeout(() => {
       setIsSnapshotReady(false);
@@ -600,11 +600,11 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
             setState((currentState) => {
               const mergedState = pendingCast
                 ? reconcileConfirmedTurn(
-                    currentState,
-                    pendingCast,
-                    expectedConfirmedTurn,
-                    event,
-                  )
+                  currentState,
+                  pendingCast,
+                  expectedConfirmedTurn,
+                  event,
+                )
                 : currentState;
 
               return {
@@ -622,11 +622,11 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
             setState((currentState) => {
               const mergedState = pendingCast
                 ? reconcileConfirmedTurn(
-                    currentState,
-                    pendingCast,
-                    expectedConfirmedTurn,
-                    event,
-                  )
+                  currentState,
+                  pendingCast,
+                  expectedConfirmedTurn,
+                  event,
+                )
                 : currentState;
 
               return {
@@ -646,21 +646,21 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
           setState((currentState) =>
             txHash
               ? {
-                  ...currentState,
-                  castActionState: "idle",
-                  pendingTxHash: currentState.pendingTxHash ?? txHash,
-                  pendingCast: currentState.pendingCast ?? pendingCast,
-                  syncStatus: "ROLLBACK",
-                  rollbackRequired: true,
-                }
+                ...currentState,
+                castActionState: "idle",
+                pendingTxHash: currentState.pendingTxHash ?? txHash,
+                pendingCast: currentState.pendingCast ?? pendingCast,
+                syncStatus: "ROLLBACK",
+                rollbackRequired: true,
+              }
               : {
-                  ...previousState,
-                  castActionState: "idle",
-                  pendingTxHash: undefined,
-                  pendingCast: null,
-                  syncStatus: "RETRYABLE_FAIL",
-                  rollbackRequired: false,
-                },
+                ...previousState,
+                castActionState: "idle",
+                pendingTxHash: undefined,
+                pendingCast: null,
+                syncStatus: "RETRYABLE_FAIL",
+                rollbackRequired: false,
+              },
           );
           setCastingSlotId(null);
         });
@@ -798,7 +798,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
 
   if (!isSnapshotReady) {
     return (
-      <main className="battle-shell flex h-[100dvh] items-center justify-center overflow-hidden bg-[#040a14] px-6 py-8">
+      <main className="battle-shell flex min-h-[100dvh] items-center justify-center overflow-auto bg-[#040a14] px-6 py-8">
         <div className="rounded-[22px] border border-white/10 bg-slate-950/70 px-6 py-5 text-sm text-slate-300">
           {messages.battle.restoringSnapshot}
         </div>
@@ -807,16 +807,16 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   }
 
   return (
-    <main className="battle-shell relative h-[100dvh] overflow-hidden bg-[#040a14] text-white">
+    <main className="battle-shell relative min-h-[100dvh] overflow-auto bg-[#040a14] text-white">
       <img
         src="/battle/battle-bg-full.webp"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        className="pointer-events-none fixed inset-0 h-full w-full object-cover"
       />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,12,18,0.08),rgba(7,12,18,0.18))]" />
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,rgba(7,12,18,0.08),rgba(7,12,18,0.18))]" />
 
-      <div className="relative z-10 flex h-full flex-col overflow-hidden">
+      <div className="relative z-10 flex min-h-[100dvh] flex-col">
         <header className="pixel-frost-nav relative z-[50] shrink-0 overflow-visible px-3 py-2 sm:px-4">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="flex min-w-0 items-center gap-2 justify-self-start">
@@ -883,8 +883,8 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-hidden px-0 pb-0 pt-0">
-          <div ref={viewportRef} className="relative h-full w-full overflow-hidden">
+        <div className="min-h-0 flex-1 px-0 pb-0 pt-20">
+          <div ref={viewportRef} className="relative h-full w-full" style={{ minHeight: `${BOARD_BASE_HEIGHT * 0.85}px` }}>
             <div
               data-testid="battle-board"
               className="absolute left-1/2 top-1/2 origin-center"
@@ -955,7 +955,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
       </div>
 
       {exitModalOpen ? (
-        <div className="absolute inset-0 z-[120] flex items-center justify-center bg-[rgba(3,8,14,0.5)] backdrop-blur-[4px]">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[rgba(3,8,14,0.5)] backdrop-blur-[4px]">
           <div className="pixel-rounded-lg pixel-panel w-[min(24rem,calc(100vw-2rem))] px-5 py-4 text-center text-[#fff6c8] shadow-[0_20px_38px_rgba(3,8,18,0.34)]">
             <p className="battle-modal-title pixel-font text-[0.84rem] uppercase tracking-[0.12em] text-[#fff8d1]">
               {locale === "zh-CN" ? "退出战斗" : "Leave Battle"}
@@ -986,7 +986,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
       ) : null}
 
       {rollbackBlocked ? (
-        <div className="absolute inset-0 z-[140] flex items-center justify-center bg-[rgba(26,6,6,0.58)] backdrop-blur-[5px]">
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-[rgba(26,6,6,0.58)] backdrop-blur-[5px]">
           <div className="pixel-rounded-lg pixel-panel w-[min(24rem,calc(100vw-2rem))] px-5 py-4 text-center text-[#fff6c8] shadow-[0_20px_38px_rgba(30,6,6,0.4)]">
             <p className="battle-modal-title pixel-font text-[0.84rem] uppercase tracking-[0.12em] text-[#fff8d1]">
               {messages.battle.sync.rollbackTitle}
@@ -1008,7 +1008,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
       ) : null}
 
       {finishModalOpen && finishModalResult ? (
-        <div className="absolute inset-0 z-[130] flex items-center justify-center bg-[rgba(3,8,14,0.56)] backdrop-blur-[5px]">
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[rgba(3,8,14,0.56)] backdrop-blur-[5px]">
           <div className="relative w-[min(28rem,calc(100vw-2rem))]">
             {finishModalResult === "victory" ? (
               <div className="pointer-events-none absolute inset-0 -z-[1]">

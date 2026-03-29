@@ -76,6 +76,10 @@ export function ScoreBoard({
   const [holdState, setHoldState] = useState<HoldState | null>(null);
   const [rowTooltip, setRowTooltip] = useState<RowTooltipState | null>(null);
   const [rejectFx, setRejectFx] = useState<{ slotId: number; key: number } | null>(null);
+  const usedSlotsCount = useMemo(
+    () => Object.values(state.usedSlots).filter(Boolean).length,
+    [state.usedSlots],
+  );
   const holdIntervalRef = useRef<number | null>(null);
   const holdTimeoutRef = useRef<number | null>(null);
   const revertIntervalRef = useRef<number | null>(null);
@@ -537,7 +541,11 @@ export function ScoreBoard({
 
       <section className="battle-command-block mt-1 min-h-0 flex-1">
         <p className="battle-command-title">SPELLS</p>
-
+        {state.turn === 1 && state.dice && usedSlotsCount === 0 ? (
+          <p className="battle-spell-hint-inline pixel-font">
+            {locale === "zh-CN" ? "✦ 按住技能进行施法 ✦" : "✦ Hold a spell to cast ✦"}
+          </p>
+        ) : null}
         <div className="mt-[2px] space-y-1">
           {skillRows.map((row) => {
             const canSelect = !row.used && !state.finished && !isCasting && !!state.dice;

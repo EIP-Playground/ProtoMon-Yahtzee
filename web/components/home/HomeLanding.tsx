@@ -75,6 +75,30 @@ export function HomeLanding({
               {errorMessage}
             </p>
           ) : null}
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: window.innerHeight, behavior: "smooth" })}
+              aria-label="Scroll down for more"
+              className="scroll-down-arrow"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M7 13l5 5 5-5" />
+                <path d="M7 6l5 5 5-5" />
+              </svg>
+            </button>
+          </div>
         </div>
       </HomeStage>
 
