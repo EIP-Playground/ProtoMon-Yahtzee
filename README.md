@@ -14,6 +14,15 @@
 </p>
 
 <p align="center">
+  <strong>Video Intro</strong>:
+  <a href="https://youtu.be/es3eoCkF-TE">Watch on YouTube</a> |
+  <strong>Online Demo</strong>:
+  <a href="https://protomon-yahtzee.vercel.app/">protomon-yahtzee.vercel.app</a> |
+  <strong>Pitch Deck</strong>:
+  <a href="./ProtoMon-demo-day-deck.pptx">ProtoMon-demo-day-deck.pptx</a>
+</p>
+
+<p align="center">
   <a href="#problem">Problem</a> •
   <a href="#solution">Solution</a> •
   <a href="#reactive-contracts-in-this-project">Reactive Contracts</a> •
@@ -314,11 +323,7 @@ This section maps the current repository to the hackathon requirements.
 | Problem and solution explained | Ready | See the Problem / Solution sections above. |
 | Post-deployment workflow described | Ready | See the workflow section above. |
 | Complete workflow tx hashes attached | Ready | Deployment and live workflow tx hashes are attached in the transaction records section above. |
-| Demo video attached | Ready | Public demo video link is attached below. |
-
-## Demo Video
-
-- **Demo video**: https://youtu.be/es3eoCkF-TE
+| Demo video attached | Ready | Public demo video link is attached near the top of this README. |
 
 ## Team
 

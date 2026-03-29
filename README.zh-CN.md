@@ -14,6 +14,15 @@
 </p>
 
 <p align="center">
+  <strong>视频介绍</strong>：
+  <a href="https://youtu.be/es3eoCkF-TE">观看 YouTube 演示视频</a> |
+  <strong>在线 Demo</strong>：
+  <a href="https://protomon-yahtzee.vercel.app/">protomon-yahtzee.vercel.app</a> |
+  <strong>PPT</strong>：
+  <a href="./ProtoMon-demo-day-deck.pptx">ProtoMon-demo-day-deck.pptx</a>
+</p>
+
+<p align="center">
   <a href="#项目要解决的问题">项目要解决的问题</a> •
   <a href="#解决方案">解决方案</a> •
   <a href="#本项目如何使用-reactive-contracts">Reactive Contracts</a> •
@@ -315,11 +324,7 @@ pnpm build
 | 解释问题与解决方案 | 已满足 | 见上方问题 / 解决方案章节。 |
 | 提供部署后工作流说明 | 已满足 | 见部署后工作流章节。 |
 | 提供完整工作流 tx hashes | 已满足 | 部署交易和 live workflow 交易已在上方交易记录章节列出。 |
-| 提交 demo video | 已满足 | 下方已附公开视频链接。 |
-
-## 演示视频
-
-- **Demo video**：https://youtu.be/es3eoCkF-TE
+| 提交 demo video | 已满足 | README 顶部已附公开视频链接。 |
 
 ## 团队
 
