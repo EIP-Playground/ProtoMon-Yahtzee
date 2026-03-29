@@ -161,7 +161,7 @@ ProtoMon 是一个 Reactive 驱动的链上 Roguelite 骰子战斗游戏：
 | 部署 `ProtoMonReactiveBadge` | Reactive Lasna | `0x0ee3a7e04bfad6c99594db858ab7c58aac1dbd3f9dffad46bc77b9ef7be34e8d` |
 | `setAuthorizedRvmId(...)` | Ethereum Sepolia | `0x25028338ad4d1ec67644afed18483c9794d90691ec3dd4e3d34c253dd230dc5f` |
 
-### 完整工作流交易（待补）
+### 完整工作流交易
 
 以下真实工作流交易已经在链上确认：
 
@@ -299,8 +299,6 @@ pnpm build
 
 ### 未完成
 
-- `GameWon -> Reactive -> Destination` 的完整真实链上证明材料
-- 最终提交所需的完整工作流 tx hashes
 - 可稳定使用的 ERC-4337 session-key UX
 - 如果需要最终 NFT 标准资产，还需要升级当前 Destination 奖励合约
 
@@ -325,7 +323,8 @@ pnpm build
 
 ## 团队
 
-- `TODO: 补充最终参赛团队成员与分工`
+- David — 设计与全栈
+- Swen — 智能合约与 Reactive 工作流
 
 ## 致谢
 

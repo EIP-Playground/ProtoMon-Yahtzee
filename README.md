@@ -298,8 +298,6 @@ pnpm build
 
 ### What is not finished yet
 
-- complete live proof of the `GameWon -> Reactive -> Destination` reward path
-- final submission-grade workflow tx hash collection
 - production-ready ERC-4337 session-key UX
 - final NFT-standard reward contract upgrade, if required beyond reward recording
 
@@ -324,7 +322,8 @@ This section maps the current repository to the hackathon requirements.
 
 ## Team
 
-- `TODO: add final hackathon team roster and roles`
+- David — Design & Full-Stack
+- Swen — Smart Contracts & Reactive Workflow
 
 ## Acknowledgements
 
