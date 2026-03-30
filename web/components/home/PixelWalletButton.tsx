@@ -1,8 +1,10 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import type { ReactNode } from "react";
+import posthog from "posthog-js";
+import { useEffect, useRef, type ReactNode } from "react";
 import { LuGlobe, LuWallet } from "react-icons/lu";
+import { useAccount } from "wagmi";
 
 import { useLocale } from "@/components/providers/LocaleProvider";
 
@@ -57,6 +59,24 @@ function WalletSquareButton({
 
 export function PixelWalletButton() {
   const { messages } = useLocale();
+  const { address, isConnected } = useAccount();
+  const trackedWalletAddressRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      trackedWalletAddressRef.current = null;
+      return;
+    }
+
+    if (trackedWalletAddressRef.current === address) {
+      return;
+    }
+
+    posthog.capture("wallet_connect", {
+      wallet_address: address,
+    });
+    trackedWalletAddressRef.current = address;
+  }, [address, isConnected]);
 
   return (
     <ConnectButton.Custom>

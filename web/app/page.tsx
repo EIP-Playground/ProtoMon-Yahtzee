@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { useEffect, useState, useTransition } from "react";
 
 import { BackToTopButton } from "@/components/home/BackToTopButton";
@@ -87,6 +88,10 @@ export default function Home() {
     try {
       // Get the user's real EOA address (for rewardRecipient and fallback sender)
       const eoaAddress = await getConnectedSenderAddress();
+      posthog.capture("game_start", {
+        game_id: "yahtzee",
+        mode: "standard",
+      });
 
       let player = eoaAddress;
       let aaClient: unknown = undefined;

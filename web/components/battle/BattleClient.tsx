@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import { IoPowerSharp } from "react-icons/io5";
@@ -151,6 +152,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const castFxTimeoutRef = useRef<number | null>(null);
   const exitButtonRef = useRef<HTMLButtonElement | null>(null);
+  const gameCompleteTrackedRef = useRef(false);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -185,6 +187,10 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
     return () => {
       window.clearTimeout(timeoutId);
     };
+  }, [gameId]);
+
+  useEffect(() => {
+    gameCompleteTrackedRef.current = false;
   }, [gameId]);
 
   useEffect(() => {
@@ -249,10 +255,25 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
     };
   }, []);
 
+  function captureGameComplete(success: boolean) {
+    if (gameCompleteTrackedRef.current) {
+      return;
+    }
+
+    gameCompleteTrackedRef.current = true;
+    posthog.capture("game_complete", {
+      game_id: "yahtzee",
+      mode: "standard",
+      success,
+    });
+  }
+
   useEffect(() => {
     if (!state.finished || finishModalResult || state.rollbackRequired || state.syncStatus === "ROLLBACK") {
       return;
     }
+
+    captureGameComplete(state.won);
 
     const timeoutId = window.setTimeout(() => {
       setFinishModalResult(state.won ? "victory" : "defeat");
@@ -680,6 +701,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   }
 
   function handleConfirmExit() {
+    captureGameComplete(false);
     setExitModalOpen(false);
     router.push("/");
   }
@@ -695,6 +717,10 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
 
     try {
       const sender = await getConnectedSenderAddress();
+      posthog.capture("game_start", {
+        game_id: "yahtzee",
+        mode: "standard",
+      });
 
       let player = sender;
       let aaClient: unknown = undefined;
