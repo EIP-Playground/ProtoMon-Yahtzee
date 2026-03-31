@@ -453,6 +453,62 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
     });
   }
 
+  async function tryAutoRecoverPendingChain(
+    previousState: BattleState,
+  ): Promise<boolean> {
+    const oldTxHash = previousState.pendingTxHash;
+    if (!oldTxHash) return false;
+
+    try {
+      const { event } = await waitForTurnPlayed(oldTxHash, isAAEnabled);
+      const chainUsedSlots = bitmapToSlots(event.args.usedSlotsBitmap);
+      const confirmedTurn =
+        event.args.won || getUsedSlotsCount(chainUsedSlots) >= 13
+          ? event.args.turn
+          : event.args.turn + 1;
+
+      await confirmRound({
+        gameId: previousState.gameId as `0x${string}`,
+        player: previousState.smartAccount,
+        pendingTxHash: oldTxHash,
+        confirmedTurn,
+      });
+
+      const clientUsedSlots = previousState.usedSlots;
+      const slotsConsistent = Object.entries(chainUsedSlots).every(
+        ([id, used]) => !used || clientUsedSlots[Number(id)] === true,
+      );
+      const hpConsistent = event.args.bossHpAfter <= previousState.bossHpLocal;
+
+      if (slotsConsistent && hpConsistent) {
+        startTransition(() => {
+          setState((currentState) => ({
+            ...currentState,
+            ...previousState,
+            bossHpChain: event.args.bossHpAfter,
+            confirmedTurn,
+            confirmedUsedSlots: chainUsedSlots,
+            confirmedUpperSubtotalLocal: event.args.upperSubtotalAfter,
+            confirmedUpperBonusClaimedLocal: event.args.upperSubtotalAfter >= 63,
+            confirmedFinished: event.args.won || getUsedSlotsCount(chainUsedSlots) >= 13,
+            confirmedWon: event.args.won,
+            castActionState: "idle",
+            pendingTxHash: undefined,
+            pendingCast: null,
+            syncStatus: "CONFIRMED",
+            rollbackRequired: false,
+          }));
+          setCastingSlotId(null);
+        });
+        return true;
+      }
+    } catch {
+      // Recovery failed
+    }
+
+    return false;
+  }
+
   function handleCast(slotId: number) {
     if (
       !state.dice ||
@@ -663,9 +719,19 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         }
       } catch (error) {
         console.error("Cast Error during AA playTurn:", error);
+        
+        const isPendingChainErr =
+          error instanceof Error &&
+          error.message.includes("waiting for on-chain confirmation");
+
+        if (isPendingChainErr) {
+          const recovered = await tryAutoRecoverPendingChain(previousState);
+          if (recovered) return;
+        }
+
         startTransition(() => {
           setState((currentState) =>
-            txHash
+            txHash || isPendingChainErr
               ? {
                 ...currentState,
                 castActionState: "idle",
