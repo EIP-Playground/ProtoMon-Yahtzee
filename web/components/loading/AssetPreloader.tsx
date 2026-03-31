@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { 
-  BATTLE_ELEMENT_VISUALS, 
-  BATTLE_SKILL_META, 
+import {
+  BATTLE_ELEMENT_VISUALS,
+  BATTLE_SKILL_META,
   BATTLE_PASSIVE_ITEMS,
   ACTIVE_COMPANION_CONFIG
 } from "@/lib/battle/config";
@@ -23,8 +23,7 @@ export function AssetPreloader() {
       "/home/hero-section/hero-panda-trainer.png",
       "/home/hero-section/hero-protomon.png",
       "/protomon-logo.png",
-      "/protomon-loading/loading-panda.gif",
-      
+
       // Companion/Theme assets
       ACTIVE_COMPANION_CONFIG.trainerImageSrc,
       ACTIVE_COMPANION_CONFIG.companionImageSrc,
