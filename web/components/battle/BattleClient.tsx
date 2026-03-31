@@ -861,6 +861,12 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
           selectedSlotId: null,
           usedSlots: rolledBackSlots,
           confirmedUsedSlots: rolledBackSlots,
+          slotResults: Object.fromEntries(
+            Object.entries(currentState.slotResults).map(([id, result]) => [
+              id,
+              rolledBackSlots[Number(id)] ? result : null,
+            ])
+          ) as BattleState["slotResults"],
           upperSubtotalLocal: rolledBack.upperSubtotal,
           confirmedUpperSubtotalLocal: rolledBack.upperSubtotal,
           upperBonusClaimedLocal: rolledBack.upperBonusClaimed,
