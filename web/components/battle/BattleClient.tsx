@@ -305,7 +305,8 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
     () => Object.values(state.usedSlots).filter(Boolean).length,
     [state.usedSlots],
   );
-  const slotProgressDisplay = state.finished ? 13 : Math.min(usedSlotsCount + 1, 13);
+  // User requested initial slot progress to read "0/13" rather than "1/13".
+  const slotProgressDisplay = usedSlotsCount;
 
   function matchesOptimisticTurn(
     optimisticSnapshot: PendingCastState["optimisticSnapshot"],
@@ -457,10 +458,16 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
     previousState: BattleState,
   ): Promise<boolean> {
     const oldTxHash = previousState.pendingTxHash;
-    if (!oldTxHash) return false;
+    console.log("[DEBUG] [tryAutoRecoverPendingChain] Triggered with previousState:", previousState);
+    if (!oldTxHash) {
+      console.log("[DEBUG] [tryAutoRecoverPendingChain] Aborting: No pendingTxHash exists in previous state.");
+      return false;
+    }
 
     try {
+      console.log("[DEBUG] [tryAutoRecoverPendingChain] waiting for turn played for txHash:", oldTxHash);
       const { event } = await waitForTurnPlayed(oldTxHash, isAAEnabled);
+      console.log("[DEBUG] [tryAutoRecoverPendingChain] Event returned:", event.args);
       const chainUsedSlots = bitmapToSlots(event.args.usedSlotsBitmap);
       const confirmedTurn =
         event.args.won || getUsedSlotsCount(chainUsedSlots) >= 13
@@ -479,8 +486,10 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         ([id, used]) => !used || clientUsedSlots[Number(id)] === true,
       );
       const hpConsistent = event.args.bossHpAfter <= previousState.bossHpLocal;
+      console.log("[DEBUG] [tryAutoRecoverPendingChain] slotsConsistent:", slotsConsistent, "hpConsistent:", hpConsistent);
 
       if (slotsConsistent && hpConsistent) {
+        console.log("[DEBUG] [tryAutoRecoverPendingChain] Recovered successfully. Patching states and setting STATUS = READY");
         startTransition(() => {
           setState((currentState) => ({
             ...currentState,
@@ -502,14 +511,17 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         });
         return true;
       }
-    } catch {
+    } catch (err) {
+      console.warn("[DEBUG] [tryAutoRecoverPendingChain] Recovery failed with error:", err);
       // Recovery failed
     }
 
+    console.log("[DEBUG] [tryAutoRecoverPendingChain] Recovery evaluated to false");
     return false;
   }
 
   function handleCast(slotId: number) {
+    console.log("[DEBUG] [handleCast] User clicked cast slotId:", slotId, "Current State Turn:", state.turn);
     if (
       castingSlotId !== null ||
       !state.dice ||
@@ -519,12 +531,15 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
       !!state.pendingTxHash ||
       rollbackBlocked
     ) {
+      console.log("[DEBUG] [handleCast] Ignored cast due to local guard conditions.");
       return;
     }
 
     const previousState = state;
     const nextState = applyLocalCast(state, slotId);
     setCastingSlotId(slotId);
+    console.log("[DEBUG] [handleCast] nextState generated after cast calculation:", nextState);
+
     const castResult = nextState.slotResults[slotId];
 
     if (castResult) {
@@ -584,12 +599,16 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
           player: state.smartAccount,
           rewardRecipient: state.rewardRecipient,
         });
+        console.log("[DEBUG] [handleCast] finalizeRound completed. Getting txHash via sendCastTurnUserOp...");
         let isAA = false;
         ({ txHash, isAA } = await sendCastTurnUserOp({
           gameId: state.gameId as `0x${string}`,
           slotId,
           proof,
         }, finalClient ?? undefined));
+        
+        console.log("[DEBUG] [handleCast] sendCastTurnUserOp succeeded! txHash:", txHash, "isAA:", isAA);
+
         const shouldAdvanceOptimistically = !nextState.finished;
         let advancedOptimistically = false;
         pendingCast = createPendingCastState(nextState, slotId, txHash);
@@ -600,6 +619,8 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
           syncStatus: "PENDING_CHAIN" as const,
           rollbackRequired: false,
         };
+
+        console.log("[DEBUG] [handleCast] Pending optimistic state assembled:", activeState);
 
         if (shouldAdvanceOptimistically) {
           try {
@@ -644,12 +665,17 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
           setState(activeState);
         });
 
+        console.log("[DEBUG] [handleCast] Calling waitForTurnPlayed...");
         const { event } = await waitForTurnPlayed(txHash, isAA);
+        console.log("[DEBUG] [handleCast] Turn Played event received:", event.args);
+
         const expectedConfirmedTurn = event.args.won || getUsedSlotsCount(bitmapToSlots(event.args.usedSlotsBitmap)) >= 13
           ? event.args.turn
           : event.args.turn + 1;
         const optimisticMismatch = !pendingCast
           || !matchesOptimisticTurn(pendingCast.optimisticSnapshot, event);
+          
+        console.log("[DEBUG] [handleCast] optimisticMismatch result:", optimisticMismatch);
 
         try {
           if (advancedOptimistically) {
@@ -720,16 +746,20 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         }
       } catch (error) {
         console.error("Cast Error during AA playTurn:", error);
+        console.log("[DEBUG] [handleCast] Caught error in outer catch. txHash exists:", !!txHash);
         
         const isPendingChainErr =
           error instanceof Error &&
           error.message.includes("waiting for on-chain confirmation");
 
         if (isPendingChainErr) {
+          console.log("[DEBUG] [handleCast] Detected 409 PENDING_CHAIN_CONFIRMATION trap. Attempting tryAutoRecoverPendingChain...");
           const recovered = await tryAutoRecoverPendingChain(previousState);
+          console.log("[DEBUG] [handleCast] Auto recovery attempt returned:", recovered);
           if (recovered) return;
         }
 
+        console.log("[DEBUG] [handleCast] Setting error state or fallback rollback. isPendingChainErr:", isPendingChainErr);
         startTransition(() => {
           setState((currentState) =>
             txHash || isPendingChainErr
@@ -812,6 +842,9 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         rewardRecipient: sender,
         bossId: 1,
       });
+      console.log("[DEBUG] [RetryRoom] Battle Session created:", session);
+      
+      console.log("[DEBUG] [RetryRoom] Calling startGameOnChain...");
       const { txHash } = await startGameOnChain(
         {
           gameId: session.gameId,
@@ -820,6 +853,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         },
         aaClient,
       );
+      console.log("[DEBUG] [RetryRoom] startGameOnChain txHash:", txHash);
 
       if (isAAEnabled) {
         try {
@@ -841,11 +875,13 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
   }
 
   async function handleRollbackBattle() {
+    console.log("[DEBUG] [handleRollbackBattle] Rollback triggered for gameId:", state.gameId);
     try {
       const rolledBack = await rollbackRound({
         gameId: state.gameId as `0x${string}`,
         player: state.smartAccount,
       });
+      console.log("[DEBUG] [handleRollbackBattle] rollbackRound API returned:", rolledBack);
       const rolledBackSlots = bitmapToSlots(rolledBack.usedSlotsBitmap);
 
       startTransition(() => {
@@ -884,7 +920,9 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         }));
         setCastingSlotId(null);
       });
-    } catch {
+      console.log("[DEBUG] [handleRollbackBattle] Local state cleanly reverted and saved.");
+    } catch (e) {
+      console.error("[DEBUG] [handleRollbackBattle] Rollback API threw an error:", e);
       startTransition(() => {
         setState((currentState) => ({
           ...currentState,

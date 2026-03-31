@@ -27,7 +27,7 @@ export function BossPanel({ state }: BossPanelProps) {
             {messages.battle.boss.turn}
           </p>
           <p className="text-3xl font-semibold text-cyan-200">
-            {state.finished ? "-" : state.turn}
+            {state.turn}
           </p>
         </div>
       </div>

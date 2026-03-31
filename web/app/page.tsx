@@ -119,11 +119,13 @@ export default function Home() {
         rewardRecipient: eoaAddress,
         bossId: 1,
       });
+      console.log("[DEBUG] Game Created locally. Session:", session);
 
       setShowCreateLoading(true);
       const battleAssetsPromise = preloadBattleAssets();
       const minLoadingPromise = wait(LOADING_MIN_CREATE_DURATION_MS);
 
+      console.log("[DEBUG] Sending startGameOnChain...");
       const { txHash, isAA } = await startGameOnChain(
         {
           gameId: session.gameId,
@@ -132,6 +134,7 @@ export default function Home() {
         },
         aaClient,
       );
+      console.log("[DEBUG] startGameOnChain txHash:", txHash, "isAA:", isAA);
 
       // If AA is enabled, bind the ephemeral key to this gameId for battle page restore
       if (isAAEnabled) {
@@ -145,9 +148,11 @@ export default function Home() {
         }
       }
 
+      console.log("[DEBUG] Waiting for game started event...");
       const chainStartedPromise = waitForGameStarted(txHash, isAA);
 
       await Promise.all([battleAssetsPromise, chainStartedPromise, minLoadingPromise]);
+      console.log("[DEBUG] Game started confirmed on chain!");
 
       setPendingGameId(session.gameId);
       setCreateReady(true);
