@@ -484,7 +484,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
         startTransition(() => {
           setState((currentState) => ({
             ...currentState,
-            ...previousState,
+            // DO NOT copy previousState blindly, otherwise it stomps active turn state.
             bossHpChain: event.args.bossHpAfter,
             confirmedTurn,
             confirmedUsedSlots: chainUsedSlots,
@@ -511,6 +511,7 @@ export function BattleClient({ gameId, initialStateSeed }: BattleClientProps) {
 
   function handleCast(slotId: number) {
     if (
+      castingSlotId !== null ||
       !state.dice ||
       state.usedSlots[slotId] ||
       state.finished ||
